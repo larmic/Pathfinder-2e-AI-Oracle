@@ -1,0 +1,25 @@
+
+
+# Target
+target/
+*.jar
+*.war
+*.zip
+*.tar.gz
+*.rar
+
+# IDEs
+.idea/
+*.iml
+*.iws
+.vscode/
+.claude/
+.junie/
+
+# macOS
+.DS_Store
+
+# Maven
+.mvn/
+!mvnw
+!mvnw.cmd
