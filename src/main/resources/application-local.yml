@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pf2e_oracle
+    username: pf2e
+    password: pf2e
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: true

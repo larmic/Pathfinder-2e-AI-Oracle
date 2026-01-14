@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: pf2e-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: pf2e
+      POSTGRES_PASSWORD: pf2e
+      POSTGRES_DB: pf2e_oracle
+    volumes:
+      - pf2e_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pf2e -d pf2e_oracle"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pf2e_data:
