@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.boot.with
 import org.springframework.context.annotation.Bean
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 
 /**
@@ -19,7 +19,7 @@ class TestcontainersConfig {
 
     @Bean
     @ServiceConnection
-    fun postgresContainer(): PostgreSQLContainer<*> =
+    fun postgresContainer(): PostgreSQLContainer =
         PostgreSQLContainer(DockerImageName.parse("pgvector/pgvector:pg17"))
             .withDatabaseName("pf2e_oracle")
             .withUsername("pf2e")

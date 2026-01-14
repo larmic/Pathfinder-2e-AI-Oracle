@@ -1,6 +1,6 @@
 package de.larmic.pf2e.importer
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import io.mockk.every
 import io.mockk.mockk
@@ -8,7 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
@@ -21,18 +21,20 @@ class ImportControllerTest {
     private lateinit var importService: FoundryImportService
     private lateinit var repository: FoundryRawEntryRepository
     private lateinit var jobStore: ImportJobStore
-    private lateinit var objectMapper: ObjectMapper
 
     @BeforeEach
     fun setUp() {
         importService = mockk(relaxed = true)
         repository = mockk(relaxed = true)
         jobStore = ImportJobStore()
-        objectMapper = ObjectMapper().findAndRegisterModules()
+
+        val jsonMapper = JsonMapper.builder()
+            .findAndAddModules()
+            .build()
 
         val controller = ImportController(importService, repository, jobStore)
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
-            .setMessageConverters(MappingJackson2HttpMessageConverter(objectMapper))
+            .setMessageConverters(JacksonJsonHttpMessageConverter(jsonMapper))
             .build()
     }
 
