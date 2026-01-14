@@ -5,6 +5,20 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * In-memory store for import jobs.
+ *
+ * IMPORTANT: This is an ephemeral store - all job data is lost on application restart.
+ * This is intentional for the current use case where:
+ * - Jobs are short-lived (import runs take minutes, not days)
+ * - Historical job data is not critical
+ * - Simplicity is preferred over persistence
+ *
+ * For production use cases requiring job history persistence, consider:
+ * - Creating an ImportJobEntity JPA entity
+ * - Adding a Flyway migration for the jobs table
+ * - Replacing ConcurrentHashMap with JPA repository
+ */
 @Component
 class ImportJobStore {
 
