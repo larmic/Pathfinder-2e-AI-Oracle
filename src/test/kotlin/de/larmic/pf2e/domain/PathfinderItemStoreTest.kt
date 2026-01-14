@@ -1,149 +1,113 @@
 package de.larmic.pf2e.domain
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 class PathfinderItemStoreTest {
 
+    private lateinit var repository: PathfinderItemRepository
     private lateinit var store: PathfinderItemStore
 
     @BeforeEach
     fun setUp() {
-        store = PathfinderItemStore()
+        repository = mockk()
+        store = PathfinderItemStore(repository)
     }
 
-    @Nested
-    inner class Save {
+    @Test
+    fun `save delegates to repository`() {
+        val item = createItem()
+        every { repository.save(item) } returns item
 
-        @Test
-        fun `saves and returns item`() {
-            val item = createItem(itemName = "Test Feat")
+        val result = store.save(item)
 
-            val saved = store.save(item)
-
-            assertThat(saved).isEqualTo(item)
-            assertThat(store.count()).isEqualTo(1)
-        }
-
-        @Test
-        fun `overwrites item with same id`() {
-            val item1 = createItem(itemName = "Original")
-            val item2 = item1.copy(itemName = "Updated")
-
-            store.save(item1)
-            store.save(item2)
-
-            assertThat(store.count()).isEqualTo(1)
-            assertThat(store.findAll().first().itemName).isEqualTo("Updated")
-        }
+        assertThat(result).isEqualTo(item)
+        verify { repository.save(item) }
     }
 
-    @Nested
-    inner class FindByGithubPath {
+    @Test
+    fun `findByGithubPath delegates to repository`() {
+        val item = createItem()
+        every { repository.findByGithubPath("path.json") } returns item
 
-        @Test
-        fun `finds item by github path`() {
-            val item = createItem(githubPath = "packs/pf2e/feats/test.json")
-            store.save(item)
+        val result = store.findByGithubPath("path.json")
 
-            val found = store.findByGithubPath("packs/pf2e/feats/test.json")
-
-            assertThat(found).isNotNull
-            assertThat(found?.githubPath).isEqualTo("packs/pf2e/feats/test.json")
-        }
-
-        @Test
-        fun `returns null when not found`() {
-            val found = store.findByGithubPath("nonexistent.json")
-
-            assertThat(found).isNull()
-        }
+        assertThat(result).isEqualTo(item)
+        verify { repository.findByGithubPath("path.json") }
     }
 
-    @Nested
-    inner class FindByFoundryId {
+    @Test
+    fun `findByFoundryId delegates to repository`() {
+        val item = createItem()
+        every { repository.findByFoundryId("id123") } returns item
 
-        @Test
-        fun `finds item by foundry id`() {
-            val item = createItem(foundryId = "abc123")
-            store.save(item)
+        val result = store.findByFoundryId("id123")
 
-            val found = store.findByFoundryId("abc123")
-
-            assertThat(found).isNotNull
-            assertThat(found?.foundryId).isEqualTo("abc123")
-        }
+        assertThat(result).isEqualTo(item)
+        verify { repository.findByFoundryId("id123") }
     }
 
-    @Nested
-    inner class FindAllByType {
+    @Test
+    fun `findAllByType delegates to repository`() {
+        val items = listOf(createItem())
+        every { repository.findAllByItemType(ItemType.FEAT) } returns items
 
-        @Test
-        fun `filters items by type`() {
-            store.save(createItem(itemType = ItemType.FEAT, itemName = "Feat 1"))
-            store.save(createItem(itemType = ItemType.FEAT, itemName = "Feat 2"))
-            store.save(createItem(itemType = ItemType.SPELL, itemName = "Spell 1"))
+        val result = store.findAllByType(ItemType.FEAT)
 
-            val feats = store.findAllByType(ItemType.FEAT)
-            val spells = store.findAllByType(ItemType.SPELL)
-
-            assertThat(feats).hasSize(2)
-            assertThat(spells).hasSize(1)
-        }
-
-        @Test
-        fun `returns empty list when no items of type`() {
-            store.save(createItem(itemType = ItemType.FEAT))
-
-            val spells = store.findAllByType(ItemType.SPELL)
-
-            assertThat(spells).isEmpty()
-        }
+        assertThat(result).isEqualTo(items)
+        verify { repository.findAllByItemType(ItemType.FEAT) }
     }
 
-    @Nested
-    inner class CountByType {
+    @Test
+    fun `findAll delegates to repository`() {
+        val items = listOf(createItem())
+        every { repository.findAll() } returns items
 
-        @Test
-        fun `counts items by type`() {
-            store.save(createItem(itemType = ItemType.FEAT, foundryId = "1"))
-            store.save(createItem(itemType = ItemType.FEAT, foundryId = "2"))
-            store.save(createItem(itemType = ItemType.SPELL, foundryId = "3"))
+        val result = store.findAll()
 
-            assertThat(store.countByType(ItemType.FEAT)).isEqualTo(2)
-            assertThat(store.countByType(ItemType.SPELL)).isEqualTo(1)
-            assertThat(store.countByType(ItemType.ITEM)).isEqualTo(0)
-        }
+        assertThat(result).isEqualTo(items)
+        verify { repository.findAll() }
     }
 
-    @Nested
-    inner class Clear {
+    @Test
+    fun `count delegates to repository`() {
+        every { repository.count() } returns 42L
 
-        @Test
-        fun `removes all items`() {
-            store.save(createItem(foundryId = "1"))
-            store.save(createItem(foundryId = "2"))
+        val result = store.count()
 
-            store.clear()
-
-            assertThat(store.count()).isEqualTo(0)
-        }
+        assertThat(result).isEqualTo(42)
+        verify { repository.count() }
     }
 
-    private fun createItem(
-        foundryId: String = "foundry-123",
-        itemType: ItemType = ItemType.FEAT,
-        itemName: String = "Test Item",
-        githubPath: String = "packs/pf2e/feats/test.json",
-        githubSha: String = "sha-abc"
-    ) = PathfinderItem(
-        foundryId = foundryId,
-        itemType = itemType,
-        itemName = itemName,
-        rawJsonContent = """{"name": "$itemName"}""",
-        githubSha = githubSha,
-        githubPath = githubPath
+    @Test
+    fun `countByType delegates to repository`() {
+        every { repository.countByItemType(ItemType.SPELL) } returns 10L
+
+        val result = store.countByType(ItemType.SPELL)
+
+        assertThat(result).isEqualTo(10)
+        verify { repository.countByItemType(ItemType.SPELL) }
+    }
+
+    @Test
+    fun `clear delegates to repository`() {
+        every { repository.deleteAll() } returns Unit
+
+        store.clear()
+
+        verify { repository.deleteAll() }
+    }
+
+    private fun createItem() = PathfinderItem(
+        foundryId = "foundry-123",
+        itemType = ItemType.FEAT,
+        itemName = "Test Item",
+        rawJsonContent = """{"name": "Test"}""",
+        githubSha = "sha-abc",
+        githubPath = "test.json"
     )
 }

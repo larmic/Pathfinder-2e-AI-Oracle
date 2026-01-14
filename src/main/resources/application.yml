@@ -2,6 +2,14 @@ spring:
   application:
     name: pf2e-oracle
 
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
   ai:
     ollama:
       base-url: http://localhost:11434
@@ -9,6 +17,12 @@ spring:
         model: llama3.2
       embedding:
         model: nomic-embed-text
+
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        initialize-schema: false
 
     mcp:
       server:

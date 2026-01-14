@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import de.larmic.pf2e.domain.ItemType
 import de.larmic.pf2e.domain.PathfinderItem
+import de.larmic.pf2e.domain.PathfinderItemRepository
 import de.larmic.pf2e.domain.PathfinderItemStore
 import de.larmic.pf2e.github.GitHubClient
 import de.larmic.pf2e.github.GitHubTreeEntry
 import de.larmic.pf2e.github.GitHubTreeResponse
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -19,17 +21,36 @@ import org.junit.jupiter.api.Test
 class PathfinderImportServiceTest {
 
     private lateinit var gitHubClient: GitHubClient
+    private lateinit var repository: PathfinderItemRepository
     private lateinit var itemStore: PathfinderItemStore
     private lateinit var objectMapper: ObjectMapper
     private lateinit var jobStore: ImportJobStore
     private lateinit var importService: PathfinderImportService
 
+    // In-memory storage for mocked repository
+    private val storage = mutableMapOf<String, PathfinderItem>()
+
     @BeforeEach
     fun setUp() {
+        storage.clear()
+
         gitHubClient = mockk(relaxed = true)
-        itemStore = PathfinderItemStore()
+        repository = mockk()
         objectMapper = jacksonObjectMapper()
         jobStore = ImportJobStore()
+
+        // Mock repository behavior
+        every { repository.findByGithubPath(any()) } answers {
+            storage[firstArg()]
+        }
+        every { repository.save(any()) } answers {
+            val item = firstArg<PathfinderItem>()
+            storage[item.githubPath] = item
+            item
+        }
+        every { repository.count() } answers { storage.size.toLong() }
+
+        itemStore = PathfinderItemStore(repository)
         importService = PathfinderImportService(gitHubClient, itemStore, objectMapper, jobStore)
 
         // Default mock für Branch
