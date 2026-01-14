@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import de.larmic.pf2e.domain.FoundryRawEntry
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import de.larmic.pf2e.github.GitHubClient
+import de.larmic.pf2e.github.GitHubProperties
 import de.larmic.pf2e.github.GitHubTreeEntry
 import de.larmic.pf2e.github.GitHubTreeResponse
 import io.mockk.every
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test
 class FoundryImportServiceTest {
 
     private lateinit var gitHubClient: GitHubClient
+    private lateinit var gitHubProperties: GitHubProperties
     private lateinit var repository: FoundryRawEntryRepository
     private lateinit var objectMapper: ObjectMapper
     private lateinit var jobStore: ImportJobStore
@@ -31,6 +33,7 @@ class FoundryImportServiceTest {
         storage.clear()
 
         gitHubClient = mockk(relaxed = true)
+        gitHubProperties = GitHubProperties()
         repository = mockk()
         objectMapper = jacksonObjectMapper()
         jobStore = ImportJobStore()
@@ -46,7 +49,7 @@ class FoundryImportServiceTest {
         }
         every { repository.count() } answers { storage.size.toLong() }
 
-        importService = FoundryImportService(gitHubClient, repository, objectMapper, jobStore)
+        importService = FoundryImportService(gitHubClient, gitHubProperties, repository, objectMapper, jobStore)
 
         // Default mock for branch
         every { gitHubClient.getDefaultBranch() } returns "main"

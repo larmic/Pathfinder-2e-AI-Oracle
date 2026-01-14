@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import de.larmic.pf2e.domain.FoundryRawEntry
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import de.larmic.pf2e.github.GitHubClient
+import de.larmic.pf2e.github.GitHubProperties
 import de.larmic.pf2e.github.GitHubTreeEntry
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service
 class FoundryImportService(
     private val gitHubClient: GitHubClient,
+    private val gitHubProperties: GitHubProperties,
     private val repository: FoundryRawEntryRepository,
     private val objectMapper: ObjectMapper,
     private val jobStore: ImportJobStore
@@ -25,8 +27,25 @@ class FoundryImportService(
     private val log = LoggerFactory.getLogger(FoundryImportService::class.java)
 
     companion object {
-        const val MAX_PARALLEL_DOWNLOADS = 10
         const val PATH_PREFIX = "packs/pf2e"
+    }
+
+    private fun extractCategory(path: String): String {
+        // path: "packs/pf2e/feats/something.json" -> "feats"
+        return path.removePrefix("$PATH_PREFIX/").substringBefore("/")
+    }
+
+    private fun formatEta(duration: Duration): String {
+        val hours = duration.toHours()
+        val minutes = duration.toMinutesPart()
+        val seconds = duration.toSecondsPart()
+
+        return when {
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> "${minutes}m ${seconds}s"
+            seconds > 0 -> "${seconds}s"
+            else -> "< 1s"
+        }
     }
 
     /**
@@ -85,7 +104,7 @@ class FoundryImportService(
         val errors = AtomicInteger(0)
         val processed = AtomicInteger(0)
         val total = toImport.size
-        val semaphore = Semaphore(MAX_PARALLEL_DOWNLOADS)
+        val semaphore = Semaphore(gitHubProperties.maxParallelDownloads)
         val executor = Executors.newVirtualThreadPerTaskExecutor()
 
         val futures = toImport.map { entry ->
@@ -105,7 +124,18 @@ class FoundryImportService(
                     if (current % 50 == 0 || current == total) {
                         jobId?.let { jobStore.updateProgress(it, current, skipped) }
                         val percent = if (total > 0) (current * 100) / total else 100
-                        log.info("Progress: {}/{} ({}%)", current, total, percent)
+                        val category = extractCategory(entry.path)
+
+                        if (current == total) {
+                            log.info("Progress: {}/{} ({}%) - done", current, total, percent)
+                        } else {
+                            val elapsed = Duration.between(startTime, Instant.now())
+                            val avgPerFile = elapsed.toMillis() / current.toDouble()
+                            val remainingFiles = total - current
+                            val etaMillis = (avgPerFile * remainingFiles).toLong()
+                            val eta = formatEta(Duration.ofMillis(etaMillis))
+                            log.info("Progress: {}/{} ({}%) - current: {} - ETA: {}", current, total, percent, category, eta)
+                        }
                     }
                 }
             }

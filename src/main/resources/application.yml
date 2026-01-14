@@ -36,3 +36,4 @@ spring:
 github:
   token: ${GITHUB_TOKEN:}
   repository: foundryvtt/pf2e
+  max-parallel-downloads: 10

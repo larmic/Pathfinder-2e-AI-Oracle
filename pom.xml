@@ -98,7 +98,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway -->
+        <!-- Flyway (Spring Boot 4 requires starter for auto-configuration) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
