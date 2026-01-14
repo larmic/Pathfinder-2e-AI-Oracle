@@ -19,7 +19,6 @@ target/
 # macOS
 .DS_Store
 
-# Maven
-.mvn/
-!mvnw
-!mvnw.cmd
+# Maven Wrapper - keep wrapper, ignore generated files
+!.mvn/wrapper/
+.mvn/timing.properties
