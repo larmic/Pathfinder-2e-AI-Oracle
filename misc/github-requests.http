@@ -1,0 +1,62 @@
+### 1. Hauptebene: Feats Verzeichnis abrufen
+GET https://api.github.com/repos/foundryvtt/pf2e/contents/packs/pf2e/feats
+Accept: application/vnd.github.v3+json
+
+### 2. Unterebene: Ancestry Verzeichnis abrufen
+GET https://api.github.com/repos/foundryvtt/pf2e/contents/packs/pf2e/feats/ancestry?ref=v13-dev
+Accept: application/vnd.github.v3+json
+
+### 3. Unterebene: Spezifische Ancestry (Anadi) abrufen
+GET https://api.github.com/repos/foundryvtt/pf2e/contents/packs/pf2e/feats/ancestry/anadi?ref=v13-dev
+Accept: application/vnd.github.v3+json
+
+### 4. Unterebene: Level-Verzeichnis abrufen
+GET https://api.github.com/repos/foundryvtt/pf2e/contents/packs/pf2e/feats/ancestry/anadi/level-1?ref=v13-dev
+Accept: application/vnd.github.v3+json
+
+### 5. Datei-Details abrufen (liefert Base64 Content)
+GET https://api.github.com/repos/foundryvtt/pf2e/contents/packs/pf2e/feats/ancestry/anadi/level-1/anadi-lore.json?ref=v13-dev
+Accept: application/vnd.github.v3+json
+
+> {%
+    // Hier speichern wir den Pfad für den Commit-Request
+    client.global.set("final_file_path", response.body.path);
+    // Base64 Inhalt dekodieren
+    const decodedContent = JSON.parse(atob(response.body.content));
+    client.global.set("decoded_json", JSON.stringify(decodedContent));
+%}
+
+### 6. Commit-Informationen für diese Datei abrufen
+GET https://api.github.com/repos/foundryvtt/pf2e/commits?path={{final_file_path}}&sha=v13-dev&per_page=1
+Accept: application/vnd.github.v3+json
+
+> {%
+    if (response.body && response.body.length > 0) {
+        client.global.set("github_commit_timestamp", response.body[0].commit.committer.date);
+    }
+%}
+
+### 7. Finaler Log der extrahierten Daten
+# Dieser Request dient nur als Trigger für den Log-Block
+GET https://httpbin.org/get
+Accept: application/json
+
+> {%
+    const content = JSON.parse(client.global.get("decoded_json"));
+    const githubPath = client.global.get("final_file_path");
+    const commitTimestamp = client.global.get("github_commit_timestamp");
+
+    client.log("=== EXTRAKTIERTE DATEN FÜR DB-IMPORT ===");
+    client.log("Foundry ID:    " + content._id);
+    client.log("Item Name:     " + content.name);
+    client.log("Item Type:     " + "FEAT");
+    client.log("GitHub Path:   " + githubPath);
+    client.log("Commit Date:   " + commitTimestamp);
+    client.log("Raw JSON Name: " + content.name);
+    client.log("System-Category: " + content.system.category);
+    client.log("Content: " + client.global.get("decoded_json"));
+    client.log("========================================");
+    
+    // Optional: Den ganzen dekodierten Content loggen
+    // client.log(JSON.stringify(content, null, 2));
+%}

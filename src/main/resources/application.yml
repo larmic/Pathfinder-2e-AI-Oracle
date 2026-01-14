@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: pf2e-oracle
+
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: llama3.2
+      embedding:
+        model: nomic-embed-text
+
+    mcp:
+      server:
+        name: pf2e-oracle
+        version: 0.0.1
+
+github:
+  token: ${GITHUB_TOKEN:}
+  repository: foundryvtt/pf2e
