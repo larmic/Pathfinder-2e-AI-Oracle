@@ -1,7 +1,6 @@
 package de.larmic.pf2e.importer
 
-import de.larmic.pf2e.domain.ItemType
-import de.larmic.pf2e.domain.PathfinderItemRepository
+import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -13,20 +12,20 @@ import java.util.*
 @RestController
 @RequestMapping("/api/import")
 class ImportController(
-    private val importService: PathfinderImportService,
-    private val itemRepository: PathfinderItemRepository,
+    private val importService: FoundryImportService,
+    private val repository: FoundryRawEntryRepository,
     private val jobStore: ImportJobStore
 ) {
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    @PostMapping("/feats")
-    fun importFeats(): ResponseEntity<ImportJob> {
-        val job = jobStore.create("FEAT")
+    @PostMapping("/all")
+    fun importAll(): ResponseEntity<ImportJob> {
+        val job = jobStore.create("ALL")
 
         scope.launch {
             try {
-                val result = importService.importFeats(job.id)
+                val result = importService.importAll(job.id)
                 jobStore.complete(job.id, result)
             } catch (e: Exception) {
                 jobStore.fail(job.id, e.message ?: "Unknown error")
@@ -39,13 +38,13 @@ class ImportController(
             .body(job)
     }
 
-    @PostMapping("/spells")
-    fun importSpells(): ResponseEntity<ImportJob> {
-        val job = jobStore.create("SPELL")
+    @PostMapping("/{category}")
+    fun importCategory(@PathVariable category: String): ResponseEntity<ImportJob> {
+        val job = jobStore.create(category.uppercase())
 
         scope.launch {
             try {
-                val result = importService.importSpells(job.id)
+                val result = importService.importCategory(category, job.id)
                 jobStore.complete(job.id, result)
             } catch (e: Exception) {
                 jobStore.fail(job.id, e.message ?: "Unknown error")
@@ -57,6 +56,9 @@ class ImportController(
             .location(URI.create("/api/import/jobs/${job.id}"))
             .body(job)
     }
+
+    @GetMapping("/categories")
+    fun getCategories(): List<String> = importService.getAvailableCategories()
 
     @GetMapping("/jobs/{id}")
     fun getJobStatus(@PathVariable id: UUID): ResponseEntity<ImportJob> {
@@ -69,8 +71,11 @@ class ImportController(
     fun getAllJobs(): List<ImportJob> = jobStore.findAll()
 
     @GetMapping("/stats")
-    fun getStats(): Map<String, Any> = mapOf(
-        "total" to itemRepository.count(),
-        "byType" to ItemType.entries.associate { it.name to itemRepository.countByItemType(it) }
-    )
+    fun getStats(): Map<String, Any> {
+        val types = repository.findAllFoundryTypes()
+        return mapOf(
+            "total" to repository.count(),
+            "byType" to types.associateWith { repository.countByFoundryType(it) }
+        )
+    }
 }

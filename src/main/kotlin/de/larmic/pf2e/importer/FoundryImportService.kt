@@ -1,9 +1,8 @@
 package de.larmic.pf2e.importer
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import de.larmic.pf2e.domain.ItemType
-import de.larmic.pf2e.domain.PathfinderItem
-import de.larmic.pf2e.domain.PathfinderItemRepository
+import de.larmic.pf2e.domain.FoundryRawEntry
+import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import de.larmic.pf2e.github.GitHubClient
 import de.larmic.pf2e.github.GitHubTreeEntry
 import org.slf4j.LoggerFactory
@@ -16,50 +15,72 @@ import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicInteger
 
 @Service
-class PathfinderImportService(
+class FoundryImportService(
     private val gitHubClient: GitHubClient,
-    private val itemRepository: PathfinderItemRepository,
+    private val repository: FoundryRawEntryRepository,
     private val objectMapper: ObjectMapper,
     private val jobStore: ImportJobStore
 ) {
 
-    private val log = LoggerFactory.getLogger(PathfinderImportService::class.java)
+    private val log = LoggerFactory.getLogger(FoundryImportService::class.java)
 
     companion object {
         const val MAX_PARALLEL_DOWNLOADS = 10
         const val PATH_PREFIX = "packs/pf2e"
     }
 
-    fun importFeats(jobId: UUID? = null): ImportResult = importItems("$PATH_PREFIX/feats", ItemType.FEAT, jobId)
+    /**
+     * Returns all available categories under packs/pf2e
+     */
+    fun getAvailableCategories(): List<String> {
+        val tree = gitHubClient.getTree()
+        return tree.tree
+            .filter { it.path.startsWith(PATH_PREFIX) && it.isDirectory() }
+            .map { it.path.removePrefix("$PATH_PREFIX/").substringBefore("/") }
+            .distinct()
+            .sorted()
+    }
 
-    fun importSpells(jobId: UUID? = null): ImportResult = importItems("$PATH_PREFIX/spells", ItemType.SPELL, jobId)
+    /**
+     * Imports all categories from packs/pf2e
+     */
+    fun importAll(jobId: UUID? = null): ImportResult {
+        return importFromPath(PATH_PREFIX, jobId)
+    }
 
-    fun importItems(pathPrefix: String, itemType: ItemType, jobId: UUID? = null): ImportResult {
+    /**
+     * Imports a specific category (e.g., "feats", "spells", "actions")
+     */
+    fun importCategory(category: String, jobId: UUID? = null): ImportResult {
+        return importFromPath("$PATH_PREFIX/$category", jobId)
+    }
+
+    private fun importFromPath(pathPrefix: String, jobId: UUID?): ImportResult {
         val startTime = Instant.now()
-        log.info("Starte Import von {} (Pfad: {})", itemType, pathPrefix)
+        log.info("Starting import from path: {}", pathPrefix)
 
-        // 1. Tree laden (1 API-Call)
+        // 1. Load tree (1 API call)
         val tree = gitHubClient.getTree()
         if (tree.truncated) {
-            log.warn("Tree wurde abgeschnitten - einige Dateien fehlen möglicherweise")
+            log.warn("Tree was truncated - some files may be missing")
         }
 
-        // 2. Relevante Einträge filtern
+        // 2. Filter relevant entries
         val entries = gitHubClient.filterTreeEntries(tree, pathPrefix)
-        log.info("Gefunden: {} JSON-Dateien unter {}", entries.size, pathPrefix)
+        log.info("Found: {} JSON files under {}", entries.size, pathPrefix)
 
-        // 3. Change-Detection: Nur geänderte/neue Dateien
+        // 3. Change detection: only changed/new files
         val toImport = entries.filter { entry ->
-            val existing = itemRepository.findByGithubPath(entry.path)
+            val existing = repository.findByGithubPath(entry.path)
             existing == null || existing.githubSha != entry.sha
         }
         val skipped = entries.size - toImport.size
-        log.info("Zu importieren: {} (übersprungen: {} unverändert)", toImport.size, skipped)
+        log.info("To import: {} (skipped: {} unchanged)", toImport.size, skipped)
 
-        // Job-Status aktualisieren
+        // Update job status
         jobId?.let { jobStore.start(it, toImport.size) }
 
-        // 4. Parallel Download mit Throttling
+        // 4. Parallel download with throttling
         val imported = AtomicInteger(0)
         val errors = AtomicInteger(0)
         val processed = AtomicInteger(0)
@@ -71,31 +92,31 @@ class PathfinderImportService(
             executor.submit {
                 semaphore.acquire()
                 try {
-                    processEntry(entry, itemType)
+                    processEntry(entry)
                     imported.incrementAndGet()
                 } catch (e: Exception) {
-                    log.error("Fehler bei {}: {}", entry.path, e.message)
+                    log.error("Error processing {}: {}", entry.path, e.message)
                     errors.incrementAndGet()
                 } finally {
                     semaphore.release()
                     val current = processed.incrementAndGet()
 
-                    // Progress-Update alle 50 Dateien oder am Ende
+                    // Progress update every 50 files or at the end
                     if (current % 50 == 0 || current == total) {
                         jobId?.let { jobStore.updateProgress(it, current, skipped) }
-                        val percent = (current * 100) / total
-                        log.info("Fortschritt: {}/{} ({}%)", current, total, percent)
+                        val percent = if (total > 0) (current * 100) / total else 100
+                        log.info("Progress: {}/{} ({}%)", current, total, percent)
                     }
                 }
             }
         }
 
-        // Warten bis alle fertig
+        // Wait for all to complete
         futures.forEach { it.get() }
         executor.shutdown()
 
         val duration = Duration.between(startTime, Instant.now())
-        log.info("Import abgeschlossen: {} importiert, {} übersprungen, {} Fehler in {}s",
+        log.info("Import completed: {} imported, {} skipped, {} errors in {}s",
             imported.get(), skipped, errors.get(), duration.seconds)
 
         return ImportResult(
@@ -107,21 +128,21 @@ class PathfinderImportService(
         )
     }
 
-    private fun processEntry(entry: GitHubTreeEntry, itemType: ItemType) {
+    private fun processEntry(entry: GitHubTreeEntry) {
         val rawJson = gitHubClient.getRawContent(entry.path)
         val jsonNode = objectMapper.readTree(rawJson)
 
-        val item = PathfinderItem(
+        val foundryEntry = FoundryRawEntry(
             foundryId = jsonNode.get("_id")?.asText() ?: "",
-            itemType = itemType,
-            itemName = jsonNode.get("name")?.asText() ?: entry.path.substringAfterLast("/"),
+            foundryType = jsonNode.get("type")?.asText() ?: "unknown",
+            name = jsonNode.get("name")?.asText() ?: entry.path.substringAfterLast("/").removeSuffix(".json"),
             rawJsonContent = rawJson,
             githubSha = entry.sha,
             githubPath = entry.path
         )
 
-        itemRepository.save(item)
-        log.debug("Importiert: {} ({})", item.itemName, item.githubPath)
+        repository.save(foundryEntry)
+        log.debug("Imported: {} ({}) - type: {}", foundryEntry.name, foundryEntry.githubPath, foundryEntry.foundryType)
     }
 }
 

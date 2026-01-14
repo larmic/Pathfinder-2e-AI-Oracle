@@ -1,6 +1,3 @@
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- Pathfinder Items table
 CREATE TABLE pathfinder_items (
     id UUID PRIMARY KEY,

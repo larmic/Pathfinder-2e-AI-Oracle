@@ -50,3 +50,8 @@ ollama-logs: ## Zeigt Ollama Logs an
 # Run with Profiles
 run-local: db-start ## Startet Anwendung mit lokaler DB und Ollama (docker-compose)
 	./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+
+db-migrate: db-start ## Führt Flyway-Migrationen aus
+	./mvnw flyway:migrate -Dflyway.url=jdbc:postgresql://localhost:5432/pf2e_oracle -Dflyway.user=pf2e -Dflyway.password=pf2e
+
+db-reset: db-clean db-migrate ## Setzt DB zurück und führt Migrationen aus

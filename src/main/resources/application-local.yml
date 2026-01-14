@@ -7,9 +7,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    defer-datasource-initialization: true
 
   flyway:
+    url: jdbc:postgresql://localhost:5432/pf2e_oracle
+    user: pf2e
+    password: pf2e
     clean-disabled: false
+    baseline-on-migrate: true
 
   ai:
     vectorstore:
