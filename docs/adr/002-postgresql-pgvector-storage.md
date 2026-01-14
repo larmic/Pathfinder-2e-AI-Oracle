@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-The initial implementation uses an in-memory `ConcurrentHashMap` (`PathfinderItemStore`) for storing PathfinderItems. This approach has significant limitations:
+The initial implementation used an in-memory `ConcurrentHashMap` for storing PathfinderItems. This approach had significant limitations:
 
 - Data is lost on application restart
 - No vector similarity search capability for RAG

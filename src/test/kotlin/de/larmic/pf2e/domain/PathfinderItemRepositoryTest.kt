@@ -6,8 +6,9 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -16,16 +17,26 @@ import org.testcontainers.utility.DockerImageName
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers
 @ActiveProfiles("test")
-class PathfinderItemRepositoryIT {
+class PathfinderItemRepositoryTest {
 
     companion object {
         @Container
-        @ServiceConnection
         @JvmStatic
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer(DockerImageName.parse("pgvector/pgvector:pg17"))
             .withDatabaseName("pf2e_oracle")
             .withUsername("pf2e")
             .withPassword("pf2e")
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun configureProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url", postgres::getJdbcUrl)
+            registry.add("spring.datasource.username", postgres::getUsername)
+            registry.add("spring.datasource.password", postgres::getPassword)
+            registry.add("spring.flyway.url", postgres::getJdbcUrl)
+            registry.add("spring.flyway.user", postgres::getUsername)
+            registry.add("spring.flyway.password", postgres::getPassword)
+        }
     }
 
     @Autowired

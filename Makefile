@@ -39,6 +39,14 @@ db-logs: ## Zeigt PostgreSQL Logs an
 db-psql: ## Öffnet PostgreSQL CLI
 	docker exec -it pf2e-postgres psql -U pf2e -d pf2e_oracle
 
+# Ollama Commands
+ollama-pull: ## Lädt die benötigten Ollama Modelle
+	docker exec -it pf2e-ollama ollama pull nomic-embed-text
+	docker exec -it pf2e-ollama ollama pull llama3.2
+
+ollama-logs: ## Zeigt Ollama Logs an
+	docker compose -f misc/docker-compose.yml logs -f ollama
+
 # Run with Profiles
-run-local: db-start ## Startet Anwendung mit lokaler DB (docker-compose)
+run-local: db-start ## Startet Anwendung mit lokaler DB und Ollama (docker-compose)
 	./mvnw spring-boot:run -Dspring-boot.run.profiles=local

@@ -50,3 +50,10 @@ The system follows a RAG pattern:
 - Traits and level stored as explicit vector store metadata to enable hard-filtering (e.g., "spells with Fire trait")
 - Translations preserve English terms in parentheses for reference
 - Foundry-specific markup must be converted to plain text for AI readability
+
+## Testing Guidelines
+
+- **Database Tests**: Always use Testcontainers with the `pgvector/pgvector:pg17` image
+- **No in-memory databases**: H2 or similar are not used to ensure production parity
+- **Integration tests**: Use `@SpringBootTest` with `@Testcontainers` and `@ServiceConnection`
+- **Migrations**: Flyway migrations are applied in all environments (including tests)

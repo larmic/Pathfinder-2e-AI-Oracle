@@ -5,7 +5,6 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import de.larmic.pf2e.domain.ItemType
 import de.larmic.pf2e.domain.PathfinderItem
 import de.larmic.pf2e.domain.PathfinderItemRepository
-import de.larmic.pf2e.domain.PathfinderItemStore
 import de.larmic.pf2e.github.GitHubClient
 import de.larmic.pf2e.github.GitHubTreeEntry
 import de.larmic.pf2e.github.GitHubTreeResponse
@@ -22,7 +21,6 @@ class PathfinderImportServiceTest {
 
     private lateinit var gitHubClient: GitHubClient
     private lateinit var repository: PathfinderItemRepository
-    private lateinit var itemStore: PathfinderItemStore
     private lateinit var objectMapper: ObjectMapper
     private lateinit var jobStore: ImportJobStore
     private lateinit var importService: PathfinderImportService
@@ -50,8 +48,7 @@ class PathfinderImportServiceTest {
         }
         every { repository.count() } answers { storage.size.toLong() }
 
-        itemStore = PathfinderItemStore(repository)
-        importService = PathfinderImportService(gitHubClient, itemStore, objectMapper, jobStore)
+        importService = PathfinderImportService(gitHubClient, repository, objectMapper, jobStore)
 
         // Default mock für Branch
         every { gitHubClient.getDefaultBranch() } returns "main"
@@ -74,7 +71,7 @@ class PathfinderImportServiceTest {
 
             assertThat(result.imported).isEqualTo(1)
             assertThat(result.skipped).isEqualTo(0)
-            assertThat(itemStore.count()).isEqualTo(1)
+            assertThat(repository.count()).isEqualTo(1)
         }
 
         @Test
@@ -88,7 +85,7 @@ class PathfinderImportServiceTest {
                 githubSha = "sha-unchanged",
                 githubPath = "packs/pf2e/feats/existing.json"
             )
-            itemStore.save(existingItem)
+            repository.save(existingItem)
 
             val tree = createTreeResponse(
                 createTreeEntry("packs/pf2e/feats/existing.json", "sha-unchanged")
@@ -114,7 +111,7 @@ class PathfinderImportServiceTest {
                 githubSha = "sha-old",
                 githubPath = "packs/pf2e/feats/changed.json"
             )
-            itemStore.save(existingItem)
+            repository.save(existingItem)
 
             val tree = createTreeResponse(
                 createTreeEntry("packs/pf2e/feats/changed.json", "sha-new")
@@ -133,7 +130,7 @@ class PathfinderImportServiceTest {
         @Test
         fun `handles mixed scenario with new unchanged and changed files`() {
             // Existing unchanged item
-            itemStore.save(PathfinderItem(
+            repository.save(PathfinderItem(
                 foundryId = "1",
                 itemType = ItemType.FEAT,
                 itemName = "Unchanged",
@@ -142,7 +139,7 @@ class PathfinderImportServiceTest {
                 githubPath = "packs/pf2e/feats/unchanged.json"
             ))
             // Existing changed item
-            itemStore.save(PathfinderItem(
+            repository.save(PathfinderItem(
                 foundryId = "2",
                 itemType = ItemType.FEAT,
                 itemName = "Changed",

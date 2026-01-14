@@ -3,7 +3,7 @@ package de.larmic.pf2e.importer
 import com.fasterxml.jackson.databind.ObjectMapper
 import de.larmic.pf2e.domain.ItemType
 import de.larmic.pf2e.domain.PathfinderItem
-import de.larmic.pf2e.domain.PathfinderItemStore
+import de.larmic.pf2e.domain.PathfinderItemRepository
 import de.larmic.pf2e.github.GitHubClient
 import de.larmic.pf2e.github.GitHubTreeEntry
 import org.slf4j.LoggerFactory
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service
 class PathfinderImportService(
     private val gitHubClient: GitHubClient,
-    private val itemStore: PathfinderItemStore,
+    private val itemRepository: PathfinderItemRepository,
     private val objectMapper: ObjectMapper,
     private val jobStore: ImportJobStore
 ) {
@@ -50,7 +50,7 @@ class PathfinderImportService(
 
         // 3. Change-Detection: Nur geänderte/neue Dateien
         val toImport = entries.filter { entry ->
-            val existing = itemStore.findByGithubPath(entry.path)
+            val existing = itemRepository.findByGithubPath(entry.path)
             existing == null || existing.githubSha != entry.sha
         }
         val skipped = entries.size - toImport.size
@@ -120,7 +120,7 @@ class PathfinderImportService(
             githubPath = entry.path
         )
 
-        itemStore.save(item)
+        itemRepository.save(item)
         log.debug("Importiert: {} ({})", item.itemName, item.githubPath)
     }
 }

@@ -1,7 +1,7 @@
 package de.larmic.pf2e.importer
 
 import de.larmic.pf2e.domain.ItemType
-import de.larmic.pf2e.domain.PathfinderItemStore
+import de.larmic.pf2e.domain.PathfinderItemRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,7 +14,7 @@ import java.util.*
 @RequestMapping("/api/import")
 class ImportController(
     private val importService: PathfinderImportService,
-    private val itemStore: PathfinderItemStore,
+    private val itemRepository: PathfinderItemRepository,
     private val jobStore: ImportJobStore
 ) {
 
@@ -70,7 +70,7 @@ class ImportController(
 
     @GetMapping("/stats")
     fun getStats(): Map<String, Any> = mapOf(
-        "total" to itemStore.count(),
-        "byType" to ItemType.entries.associate { it.name to itemStore.countByType(it) }
+        "total" to itemRepository.count(),
+        "byType" to ItemType.entries.associate { it.name to itemRepository.countByItemType(it) }
     )
 }

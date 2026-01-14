@@ -2,6 +2,8 @@ package de.larmic.pf2e.domain
 
 import com.fasterxml.uuid.Generators
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 import java.util.UUID
 
@@ -38,7 +40,8 @@ data class PathfinderItem(
     @Column(nullable = false)
     val itemName: String,
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "JSONB", nullable = false)
     val rawJsonContent: String,
 
     @Column(nullable = false, length = 64)
