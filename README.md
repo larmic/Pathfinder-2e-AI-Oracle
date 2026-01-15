@@ -26,3 +26,48 @@ Source data is in English for maximum accuracy. The AI Oracle bridges languages:
 *   **Game Masters (GMs)** who need quick rule clarification during sessions.
 *   **Players** who want to understand complex character interactions.
 *   **Developers** seeking a reliable rules API for their own tools.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        PF2E ORACLE SYSTEM                       │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              Embedding Provider (configurable)           │   │
+│  │  ┌─────────────────┐     ┌─────────────────────────┐    │   │
+│  │  │ Ollama (local)  │ OR  │ OpenAI (cloud/scalable) │    │   │
+│  │  │ Profile: local  │     │ Profile: openai         │    │   │
+│  │  └─────────────────┘     └─────────────────────────┘    │   │
+│  └────────────────────────────┬────────────────────────────┘   │
+│                               │                                 │
+│                               ▼                                 │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────────┐   │
+│  │   GitHub    │────▶│  VectorStore │◀────│   RAG Service   │   │
+│  │  (PF2e Data)│     │  (PGVector)  │     │  (@Tool Search) │   │
+│  └─────────────┘     └─────────────┘     └────────┬────────┘   │
+│                                                   │             │
+│                                                   ▼             │
+│                                           ┌─────────────┐       │
+│                                           │ MCP Server  │       │
+│                                           └──────┬──────┘       │
+└──────────────────────────────────────────────────┼──────────────┘
+                                                   │
+                                                   ▼
+                                    ┌─────────────────────────┐
+                                    │   External AI Clients   │
+                                    │ (Claude Desktop, GPT-4) │
+                                    └─────────────────────────┘
+```
+
+### How It Works
+
+1. **Data Import:** PF2e rule data (spells, feats, items, etc.) is imported from the Foundry VTT GitHub repository
+2. **Vectorization:** Text content is converted to embeddings using an Embedding Provider (Ollama for local dev, OpenAI for production)
+3. **Storage:** Embeddings are stored in PGVector (PostgreSQL) for efficient similarity search
+4. **RAG Service:** Semantic search with metadata filtering (type, level, traits, etc.)
+5. **MCP Server:** Exposes search tools via Model Context Protocol
+6. **AI Clients:** External AI models (Claude, GPT-4) call the MCP tools to retrieve accurate rule data
+
+### Key Point
+The embedding provider is configurable via Spring Profiles. Both providers use the same PGVector database - only the embedding generation differs.

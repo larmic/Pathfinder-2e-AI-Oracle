@@ -35,6 +35,31 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
 
 ### Phase 2: Rules Intelligence (The Core)
 - [ ] **RAG Service:** Create a service for similarity search with metadata filters.
+    - New file: `src/main/kotlin/de/larmic/pf2e/rag/RagService.kt`
+    - Use `@Tool` annotations for MCP exposure
+    - Example methods: `searchRules()`, `searchSpells()`, `searchFeats()`, `getEntry()`
+- [ ] **OpenAI Embeddings for Production:** Add configurable embedding provider.
+    - Add dependency to `pom.xml`:
+      ```xml
+      <dependency>
+          <groupId>org.springframework.ai</groupId>
+          <artifactId>spring-ai-starter-model-openai</artifactId>
+      </dependency>
+      ```
+    - Create `application-openai.yml`:
+      ```yaml
+      spring:
+        ai:
+          ollama:
+            embedding:
+              enabled: false
+          openai:
+            api-key: ${OPENAI_API_KEY}
+            embedding:
+              model: text-embedding-3-small
+      ```
+    - Usage: `SPRING_PROFILES_ACTIVE=openai OPENAI_API_KEY=sk-... ./mvnw spring-boot:run`
+    - Cost estimation: ~$0.00002 per 1K tokens (~$1.20/month for 10,000 requests/day)
 - [ ] **Translation & Glossary Logic:**
     - Integrate a **glossary mapping** (English -> target language) for core terms (Saves, Attributes, common Traits) to ensure consistency with official translations.
     - System prompt optimization: "Respond in the user's language, keeping English technical terms in parentheses."
@@ -46,16 +71,21 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
 - [ ] **Client Test:** Connect to Claude Desktop via Stdio for local testing.
 
 ## 3. Cost Optimization & Hosting
-- **Development:** $0 using local LLMs via **Ollama** (e.g., Llama 3 or Mistral).
-- **Database:** Start with `SimpleVectorStore`, migrate to **PGVector (PostgreSQL)** as data grows for persistence and efficient metadata filtering.
-- **Production:** Docker container on small VPS.
 
-> **Note on Embedding Alternatives:** Ollama requires local installation. Alternatives for vectorization:
-> - **OpenAI Embeddings** - No local service needed, but requires API key
-> - **Anthropic/Cloud Providers** (Cohere, Mistral API) - Also API key based
-> - **Pre-computed Embeddings** - Calculate once with any tool and store in PGVector
+### Embedding Provider Options
+| Provider | Profile | Use Case | Cost |
+|----------|---------|----------|------|
+| Ollama | `local` (default) | Local development | $0 |
+| OpenAI | `openai` | Production, scalable | ~$1.20/month |
+
+### Infrastructure
+- **Database:** PGVector (PostgreSQL) for vector storage and metadata filtering
+- **Production:** Docker container on small VPS
+- **Important:** Ollama must be running for embedding generation (both data ingestion AND query processing)
 
 ## 4. Next Steps
-1. Add Spring AI & MCP dependencies to `pom.xml`.
-2. Implement `PathfinderDataImporter.kt` including `@UUID` cleanup.
-3. First local test: "How does the 'Incapacitation' rule work?"
+1. ~~Add Spring AI & MCP dependencies to `pom.xml`.~~ (Done)
+2. ~~Implement `PathfinderDataImporter.kt` including `@UUID` cleanup.~~ (Done)
+3. Implement RAG Service with `@Tool` annotations
+4. Configure MCP server for tool exposure
+5. Test with Claude Desktop: "How does the 'Incapacitation' rule work?"
