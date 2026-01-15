@@ -1,41 +1,39 @@
 package de.larmic.pf2e.importer
 
-import tools.jackson.databind.json.JsonMapper
+import com.ninjasquad.springmockk.MockkBean
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
-import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import java.util.*
 
+@WebMvcTest(ImportController::class)
+@Import(ImportJobStore::class)
 class ImportControllerTest {
 
+    @Autowired
     private lateinit var mockMvc: MockMvc
+
+    @MockkBean
     private lateinit var importService: FoundryImportService
+
+    @MockkBean
     private lateinit var repository: FoundryRawEntryRepository
+
+    @Autowired
     private lateinit var jobStore: ImportJobStore
 
     @BeforeEach
     fun setUp() {
-        importService = mockk(relaxed = true)
-        repository = mockk(relaxed = true)
-        jobStore = ImportJobStore()
-
-        val jsonMapper = JsonMapper.builder()
-            .findAndAddModules()
-            .build()
-
-        val controller = ImportController(importService, repository, jobStore)
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
-            .setMessageConverters(JacksonJsonHttpMessageConverter(jsonMapper))
-            .build()
+        jobStore.clear()
     }
 
     @Nested
@@ -139,7 +137,6 @@ class ImportControllerTest {
 
         @Test
         fun `returns all jobs`() {
-            jobStore.clear()
             jobStore.create("FEATS")
             jobStore.create("SPELLS")
 
@@ -151,8 +148,6 @@ class ImportControllerTest {
 
         @Test
         fun `returns empty list when no jobs`() {
-            jobStore.clear()
-
             mockMvc.perform(get("/api/import/jobs"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$").isArray)
