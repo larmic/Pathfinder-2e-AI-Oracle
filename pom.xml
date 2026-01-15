@@ -129,6 +129,14 @@
             <version>5.1.0</version>
         </dependency>
 
+        <!-- Netty DNS resolver for macOS (Apple Silicon) -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns-native-macos</artifactId>
+            <classifier>osx-aarch_64</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

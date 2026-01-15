@@ -40,5 +40,8 @@ data class FoundryRawEntry(
     val lastSync: Instant = Instant.now(),
 
     @Column(nullable = false)
-    val githubPath: String
+    val githubPath: String,
+
+    @Column(length = 64)
+    val vectorizedSha: String? = null
 )

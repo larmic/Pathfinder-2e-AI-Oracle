@@ -3,17 +3,21 @@ package de.larmic.pf2e.ingestion
 import com.ninjasquad.springmockk.MockkBean
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import io.mockk.every
-import io.mockk.verify
+import org.hamcrest.Matchers.startsWith
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import java.util.*
 
 @WebMvcTest(IngestionController::class)
+@Import(IngestionJobStore::class)
 class IngestionControllerTest {
 
     @Autowired
@@ -25,50 +29,43 @@ class IngestionControllerTest {
     @MockkBean
     private lateinit var repository: FoundryRawEntryRepository
 
+    @Autowired
+    private lateinit var jobStore: IngestionJobStore
+
+    @BeforeEach
+    fun setUp() {
+        jobStore.clear()
+    }
+
     @Nested
     inner class PostIngestByType {
 
         @Test
-        fun `returns 200 OK with ingestion result`() {
-            every { ingestionService.ingestByType("spell") } returns IngestionResult(
-                processed = 10,
-                errors = 0,
-                total = 10,
-                durationSeconds = 5
-            )
-
+        fun `returns 202 Accepted`() {
             mockMvc.perform(post("/api/ingestion/type/spell"))
-                .andExpect(status().isOk)
+                .andExpect(status().isAccepted)
+        }
+
+        @Test
+        fun `returns Location header with job URL`() {
+            mockMvc.perform(post("/api/ingestion/type/spell"))
+                .andExpect(header().exists("Location"))
+                .andExpect(header().string("Location", startsWith("/api/ingestion/jobs/")))
+        }
+
+        @Test
+        fun `returns job in response body`() {
+            mockMvc.perform(post("/api/ingestion/type/spell"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.processed").value(10))
-                .andExpect(jsonPath("$.errors").value(0))
-                .andExpect(jsonPath("$.total").value(10))
-                .andExpect(jsonPath("$.durationSeconds").value(5))
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.foundryType").value("SPELL"))
+                .andExpect(jsonPath("$.status").value("PENDING"))
         }
 
         @Test
-        fun `calls service with correct type`() {
-            every { ingestionService.ingestByType("feat") } returns IngestionResult(0, 0, 0, 0)
-
+        fun `uses uppercase foundryType`() {
             mockMvc.perform(post("/api/ingestion/type/feat"))
-                .andExpect(status().isOk)
-
-            verify { ingestionService.ingestByType("feat") }
-        }
-
-        @Test
-        fun `returns result with errors`() {
-            every { ingestionService.ingestByType("action") } returns IngestionResult(
-                processed = 8,
-                errors = 2,
-                total = 10,
-                durationSeconds = 3
-            )
-
-            mockMvc.perform(post("/api/ingestion/type/action"))
-                .andExpect(status().isOk)
-                .andExpect(jsonPath("$.processed").value(8))
-                .andExpect(jsonPath("$.errors").value(2))
+                .andExpect(jsonPath("$.foundryType").value("FEAT"))
         }
     }
 
@@ -76,31 +73,70 @@ class IngestionControllerTest {
     inner class PostIngestAll {
 
         @Test
-        fun `returns 200 OK with ingestion result`() {
-            every { ingestionService.ingestAll() } returns IngestionResult(
-                processed = 1000,
-                errors = 5,
-                total = 1005,
-                durationSeconds = 120
-            )
-
+        fun `returns 202 Accepted`() {
             mockMvc.perform(post("/api/ingestion/all"))
-                .andExpect(status().isOk)
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.processed").value(1000))
-                .andExpect(jsonPath("$.errors").value(5))
-                .andExpect(jsonPath("$.total").value(1005))
-                .andExpect(jsonPath("$.durationSeconds").value(120))
+                .andExpect(status().isAccepted)
         }
 
         @Test
-        fun `calls ingestAll service method`() {
-            every { ingestionService.ingestAll() } returns IngestionResult(0, 0, 0, 0)
-
+        fun `returns Location header with job URL`() {
             mockMvc.perform(post("/api/ingestion/all"))
-                .andExpect(status().isOk)
+                .andExpect(header().exists("Location"))
+                .andExpect(header().string("Location", startsWith("/api/ingestion/jobs/")))
+        }
 
-            verify { ingestionService.ingestAll() }
+        @Test
+        fun `returns job in response body`() {
+            mockMvc.perform(post("/api/ingestion/all"))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.foundryType").value("ALL"))
+                .andExpect(jsonPath("$.status").value("PENDING"))
+        }
+    }
+
+    @Nested
+    inner class GetJobStatus {
+
+        @Test
+        fun `returns job when exists`() {
+            val job = jobStore.create("SPELL")
+
+            mockMvc.perform(get("/api/ingestion/jobs/${job.id}"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.id").value(job.id.toString()))
+                .andExpect(jsonPath("$.foundryType").value("SPELL"))
+        }
+
+        @Test
+        fun `returns 404 when job not found`() {
+            val randomId = UUID.randomUUID()
+
+            mockMvc.perform(get("/api/ingestion/jobs/$randomId"))
+                .andExpect(status().isNotFound)
+        }
+    }
+
+    @Nested
+    inner class GetAllJobs {
+
+        @Test
+        fun `returns all jobs`() {
+            jobStore.create("SPELL")
+            jobStore.create("FEAT")
+
+            mockMvc.perform(get("/api/ingestion/jobs"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$").isArray)
+                .andExpect(jsonPath("$.length()").value(2))
+        }
+
+        @Test
+        fun `returns empty list when no jobs`() {
+            mockMvc.perform(get("/api/ingestion/jobs"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$").isArray)
+                .andExpect(jsonPath("$.length()").value(0))
         }
     }
 
@@ -135,6 +171,35 @@ class IngestionControllerTest {
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$").isArray)
                 .andExpect(jsonPath("$.length()").value(0))
+        }
+    }
+
+    @Nested
+    inner class GetStats {
+
+        @Test
+        fun `returns stats with counts`() {
+            every { repository.count() } returns 100L
+            every { repository.countPendingVectorization() } returns 30L
+
+            mockMvc.perform(get("/api/ingestion/stats"))
+                .andExpect(status().isOk)
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.totalEntries").value(100))
+                .andExpect(jsonPath("$.vectorizedEntries").value(70))
+                .andExpect(jsonPath("$.pendingEntries").value(30))
+        }
+
+        @Test
+        fun `returns zero stats when empty`() {
+            every { repository.count() } returns 0L
+            every { repository.countPendingVectorization() } returns 0L
+
+            mockMvc.perform(get("/api/ingestion/stats"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.totalEntries").value(0))
+                .andExpect(jsonPath("$.vectorizedEntries").value(0))
+                .andExpect(jsonPath("$.pendingEntries").value(0))
         }
     }
 }

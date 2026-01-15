@@ -1,0 +1,64 @@
+### ===========================================
+### Pathfinder 2e AI Oracle - API Requests
+### ===========================================
+### Prerequisite: make run-local
+### ===========================================
+
+### ----------- Import API -----------
+
+### Import all categories from GitHub
+POST http://localhost:8080/api/import/all
+
+### Import specific category (e.g., feats, spells, actions)
+POST http://localhost:8080/api/import/feats
+
+###
+POST http://localhost:8080/api/import/spells
+
+###
+POST http://localhost:8080/api/import/actions
+
+### Get available import categories
+GET http://localhost:8080/api/import/categories
+
+### Get import statistics
+GET http://localhost:8080/api/import/stats
+
+### Get all import jobs
+GET http://localhost:8080/api/import/jobs
+
+### Get specific job status (replace {jobId} with actual UUID)
+GET http://localhost:8080/api/import/jobs/{{jobId}}
+
+### ----------- Ingestion API -----------
+### (Vectorization for RAG - async with job tracking)
+
+### Ingest all entries into vector store (full re-index)
+POST http://localhost:8080/api/ingestion/all
+
+### Ingest all entries incrementally (only new/changed)
+POST http://localhost:8080/api/ingestion/all?incremental=true
+
+### Ingest specific type (full)
+POST http://localhost:8080/api/ingestion/type/spell
+
+###
+POST http://localhost:8080/api/ingestion/type/feat
+
+###
+POST http://localhost:8080/api/ingestion/type/action
+
+### Ingest specific type incrementally
+POST http://localhost:8080/api/ingestion/type/spell?incremental=true
+
+### Get all ingestion jobs
+GET http://localhost:8080/api/ingestion/jobs
+
+### Get specific ingestion job status (replace {jobId} with actual UUID)
+GET http://localhost:8080/api/ingestion/jobs/{{jobId}}
+
+### Get available types with counts
+GET http://localhost:8080/api/ingestion/types
+
+### Get ingestion statistics (total, vectorized, pending)
+GET http://localhost:8080/api/ingestion/stats
