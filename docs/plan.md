@@ -29,7 +29,7 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
 - [x] **Parser Development:**
     - Kotlin Data Classes for extracting relevant fields (`name`, `description`, `traits`).
     - **Cleanup Logic:** Convert Foundry-specific tags (e.g., `@UUID`, `@Check`, `@Localize`) to plain text for better AI readability.
-- [ ] **Vectorization with Metadata:**
+- [x] **Vectorization with Metadata:**
     - Implement `IngestionService`.
     - **Important:** Traits and level are stored as explicit metadata in the `VectorStore` to enable hard-filtering (e.g., "search only spells with trait 'Fire'").
 

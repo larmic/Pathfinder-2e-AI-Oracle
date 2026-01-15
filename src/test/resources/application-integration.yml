@@ -1,0 +1,17 @@
+# Configuration for integration tests with Ollama
+# Used by tests tagged with @Tag("integration")
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+
+  ai:
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE

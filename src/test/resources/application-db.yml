@@ -1,0 +1,8 @@
+# Minimale Konfiguration für @DataJpaTest mit Testcontainers
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true

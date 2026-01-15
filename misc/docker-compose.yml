@@ -23,11 +23,14 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+      - ./ollama-entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "ollama list || exit 1"]
+      test: ["CMD-SHELL", "ollama list | grep -q nomic-embed-text"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 30
+      start_period: 60s
 
 volumes:
   pf2e_data:
