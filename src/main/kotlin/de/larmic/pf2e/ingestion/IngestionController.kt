@@ -27,60 +27,25 @@ class IngestionController(
     private val scope = CoroutineScope(Dispatchers.IO)
 
     /**
-     * Ingest all entries of a specific type.
+     * Ingest all entries into the vector store.
      *
-     * @param incremental If true, only process entries that have changed since last ingestion.
+     * By default, only processes entries that have changed since last ingestion (incremental).
+     * Use force=true to perform a full re-index.
      *
-     * Example: POST /api/ingestion/type/spell
-     * Example: POST /api/ingestion/type/spell?incremental=true
-     */
-    @PostMapping("/type/{foundryType}")
-    fun ingestByType(
-        @PathVariable foundryType: String,
-        @RequestParam(defaultValue = "false") incremental: Boolean
-    ): ResponseEntity<IngestionJob> {
-        val job = jobStore.create(foundryType.uppercase())
-
-        scope.launch {
-            try {
-                val result = if (incremental) {
-                    ingestionService.ingestPendingByType(foundryType, job.id)
-                } else {
-                    ingestionService.ingestByType(foundryType, job.id)
-                }
-                jobStore.complete(job.id, result)
-            } catch (e: Exception) {
-                jobStore.fail(job.id, e.message ?: "Unknown error")
-            }
-        }
-
-        return ResponseEntity
-            .accepted()
-            .location(URI.create("/api/ingestion/jobs/${job.id}"))
-            .body(job)
-    }
-
-    /**
-     * Ingest all entries (full re-index).
-     * Warning: This may take 15-30 minutes with Ollama embeddings.
-     *
-     * @param incremental If true, only process entries that have changed since last ingestion.
-     *
-     * Example: POST /api/ingestion/all
-     * Example: POST /api/ingestion/all?incremental=true
+     * @param force If true, re-index all entries regardless of vectorization status.
      */
     @PostMapping("/all")
     fun ingestAll(
-        @RequestParam(defaultValue = "false") incremental: Boolean
+        @RequestParam(defaultValue = "false") force: Boolean
     ): ResponseEntity<IngestionJob> {
         val job = jobStore.create("ALL")
 
         scope.launch {
             try {
-                val result = if (incremental) {
-                    ingestionService.ingestPending(job.id)
-                } else {
+                val result = if (force) {
                     ingestionService.ingestAll(job.id)
+                } else {
+                    ingestionService.ingestPending(job.id)
                 }
                 jobStore.complete(job.id, result)
             } catch (e: Exception) {
@@ -96,8 +61,6 @@ class IngestionController(
 
     /**
      * Get job status by ID.
-     *
-     * Example: GET /api/ingestion/jobs/{id}
      */
     @GetMapping("/jobs/{id}")
     fun getJobStatus(@PathVariable id: UUID): ResponseEntity<IngestionJob> {
@@ -108,16 +71,12 @@ class IngestionController(
 
     /**
      * Get all jobs.
-     *
-     * Example: GET /api/ingestion/jobs
      */
     @GetMapping("/jobs")
     fun getAllJobs(): List<IngestionJob> = jobStore.findAll()
 
     /**
-     * Get available foundry types for ingestion.
-     *
-     * Example: GET /api/ingestion/types
+     * Get available foundry types with entry counts.
      */
     @GetMapping("/types")
     fun getAvailableTypes(): ResponseEntity<List<TypeCount>> {
@@ -130,8 +89,6 @@ class IngestionController(
 
     /**
      * Get ingestion statistics including pending count.
-     *
-     * Example: GET /api/ingestion/stats
      */
     @GetMapping("/stats")
     fun getStats(): ResponseEntity<IngestionStats> {

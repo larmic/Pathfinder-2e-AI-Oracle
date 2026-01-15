@@ -1,0 +1,511 @@
+openapi: 3.1.0
+info:
+  title: Pathfinder 2e AI Oracle API
+  description: |
+    REST API for managing Foundry VTT PF2e data import and vector store ingestion.
+
+    The system operates in two phases:
+    1. **Import**: Download JSON data from the Foundry VTT PF2e GitHub repository
+    2. **Ingestion**: Process imported data into the vector store for RAG-based similarity search
+
+    Both operations run asynchronously and return job IDs for status tracking.
+  version: 1.0.0
+  contact:
+    name: GitHub Repository
+    url: https://github.com/larmic/Pathfinder-2e-AI-Oracle
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Import
+    description: Import Foundry VTT PF2e data from GitHub
+  - name: Ingestion
+    description: Ingest data into vector store for RAG search
+
+paths:
+  /api/import/all:
+    post:
+      tags:
+        - Import
+      summary: Import all categories from GitHub
+      description: |
+        Triggers an asynchronous import of all Foundry VTT PF2e data categories.
+        Only downloads files that are new or have changed (SHA comparison).
+        Returns immediately with a job ID for status tracking.
+      operationId: importAll
+      responses:
+        '202':
+          description: Import job started
+          headers:
+            Location:
+              description: URL to check job status
+              schema:
+                type: string
+                example: /api/import/jobs/019430b6-1234-7000-8000-000000000000
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportJob'
+
+  /api/import/categories:
+    get:
+      tags:
+        - Import
+      summary: List available import categories
+      description: Returns a list of all available Foundry VTT PF2e categories that can be imported.
+      operationId: getCategories
+      responses:
+        '200':
+          description: List of category names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["actions", "ancestries", "backgrounds", "classes", "feats", "spells"]
+
+  /api/import/jobs:
+    get:
+      tags:
+        - Import
+      summary: List all import jobs
+      description: Returns all import jobs in the current session. Note that jobs are stored in memory and lost on restart.
+      operationId: getAllImportJobs
+      responses:
+        '200':
+          description: List of import jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImportJob'
+
+  /api/import/jobs/{id}:
+    get:
+      tags:
+        - Import
+      summary: Get import job status
+      description: Returns the current status of a specific import job.
+      operationId: getImportJobStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Job UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportJob'
+        '404':
+          description: Job not found
+
+  /api/import/stats:
+    get:
+      tags:
+        - Import
+      summary: Get import statistics
+      description: Returns statistics about imported data including total count and breakdown by Foundry type.
+      operationId: getImportStats
+      responses:
+        '200':
+          description: Import statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportStats'
+
+  /api/ingestion/all:
+    post:
+      tags:
+        - Ingestion
+      summary: Ingest entries into vector store
+      description: |
+        Triggers asynchronous ingestion of Foundry entries into the vector store for RAG-based similarity search.
+
+        By default, performs incremental ingestion (only entries that have changed since last ingestion).
+        Use `force=true` to perform a full re-index of all entries.
+
+        **Note**: Full re-index may take 15-30 minutes depending on data size and embedding model.
+      operationId: ingestAll
+      parameters:
+        - name: force
+          in: query
+          required: false
+          description: If true, re-index all entries regardless of vectorization status
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '202':
+          description: Ingestion job started
+          headers:
+            Location:
+              description: URL to check job status
+              schema:
+                type: string
+                example: /api/ingestion/jobs/019430b6-1234-7000-8000-000000000000
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionJob'
+
+  /api/ingestion/jobs:
+    get:
+      tags:
+        - Ingestion
+      summary: List all ingestion jobs
+      description: Returns all ingestion jobs in the current session. Note that jobs are stored in memory and lost on restart.
+      operationId: getAllIngestionJobs
+      responses:
+        '200':
+          description: List of ingestion jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IngestionJob'
+
+  /api/ingestion/jobs/{id}:
+    get:
+      tags:
+        - Ingestion
+      summary: Get ingestion job status
+      description: Returns the current status of a specific ingestion job.
+      operationId: getIngestionJobStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Job UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Job found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionJob'
+        '404':
+          description: Job not found
+
+  /api/ingestion/types:
+    get:
+      tags:
+        - Ingestion
+      summary: List available Foundry types with counts
+      description: Returns all distinct Foundry types in the database with their entry counts.
+      operationId: getAvailableTypes
+      responses:
+        '200':
+          description: List of types with counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TypeCount'
+
+  /api/ingestion/stats:
+    get:
+      tags:
+        - Ingestion
+      summary: Get ingestion statistics
+      description: Returns statistics about vectorization status including total, vectorized, and pending counts.
+      operationId: getIngestionStats
+      responses:
+        '200':
+          description: Ingestion statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionStats'
+
+components:
+  schemas:
+    ImportJob:
+      type: object
+      description: Represents an asynchronous import job
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique job identifier
+          example: "019430b6-1234-7000-8000-000000000000"
+        itemType:
+          type: string
+          description: Type of import (always "ALL" for full import)
+          example: "ALL"
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: When the job was created
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the job started processing
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the job completed
+        progress:
+          $ref: '#/components/schemas/ImportProgress'
+        result:
+          $ref: '#/components/schemas/ImportResult'
+        errorMessage:
+          type: string
+          nullable: true
+          description: Error message if job failed
+      required:
+        - id
+        - itemType
+        - status
+        - createdAt
+        - progress
+
+    ImportProgress:
+      type: object
+      description: Progress information for an import job
+      properties:
+        totalFiles:
+          type: integer
+          description: Total number of files to process
+          example: 28000
+        processedFiles:
+          type: integer
+          description: Number of files processed so far
+          example: 14000
+        skippedFiles:
+          type: integer
+          description: Number of files skipped (unchanged)
+          example: 5000
+        percentComplete:
+          type: integer
+          description: Completion percentage (0-100)
+          example: 50
+      required:
+        - totalFiles
+        - processedFiles
+        - skippedFiles
+        - percentComplete
+
+    ImportResult:
+      type: object
+      nullable: true
+      description: Final result of a completed import job
+      properties:
+        imported:
+          type: integer
+          description: Number of files imported
+          example: 9000
+        skipped:
+          type: integer
+          description: Number of files skipped
+          example: 19000
+        errors:
+          type: integer
+          description: Number of errors encountered
+          example: 0
+        durationSeconds:
+          type: integer
+          format: int64
+          description: Total duration in seconds
+          example: 300
+        totalFiles:
+          type: integer
+          description: Total files processed
+          example: 28000
+      required:
+        - imported
+        - skipped
+        - errors
+        - durationSeconds
+        - totalFiles
+
+    ImportStats:
+      type: object
+      description: Statistics about imported data
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Total number of imported entries
+          example: 28000
+        byType:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+          description: Count of entries by Foundry type
+          example:
+            feat: 5000
+            spell: 3000
+            action: 1000
+      required:
+        - total
+        - byType
+
+    IngestionJob:
+      type: object
+      description: Represents an asynchronous ingestion job
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique job identifier
+          example: "019430b6-1234-7000-8000-000000000000"
+        foundryType:
+          type: string
+          description: Type of ingestion (always "ALL" for full ingestion)
+          example: "ALL"
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: When the job was created
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the job started processing
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the job completed
+        progress:
+          $ref: '#/components/schemas/IngestionProgress'
+        result:
+          $ref: '#/components/schemas/IngestionResult'
+        errorMessage:
+          type: string
+          nullable: true
+          description: Error message if job failed
+      required:
+        - id
+        - foundryType
+        - status
+        - createdAt
+        - progress
+
+    IngestionProgress:
+      type: object
+      description: Progress information for an ingestion job
+      properties:
+        totalEntries:
+          type: integer
+          description: Total number of entries to process
+          example: 28000
+        processedEntries:
+          type: integer
+          description: Number of entries processed so far
+          example: 14000
+        errors:
+          type: integer
+          description: Number of errors encountered
+          example: 5
+        percentComplete:
+          type: integer
+          description: Completion percentage (0-100)
+          example: 50
+      required:
+        - totalEntries
+        - processedEntries
+        - errors
+        - percentComplete
+
+    IngestionResult:
+      type: object
+      nullable: true
+      description: Final result of a completed ingestion job
+      properties:
+        processed:
+          type: integer
+          description: Number of entries successfully processed
+          example: 27995
+        errors:
+          type: integer
+          description: Number of errors encountered
+          example: 5
+        total:
+          type: integer
+          description: Total entries attempted
+          example: 28000
+        durationSeconds:
+          type: integer
+          format: int64
+          description: Total duration in seconds
+          example: 1800
+      required:
+        - processed
+        - errors
+        - total
+        - durationSeconds
+
+    IngestionStats:
+      type: object
+      description: Statistics about vectorization status
+      properties:
+        totalEntries:
+          type: integer
+          format: int64
+          description: Total number of entries in database
+          example: 28000
+        vectorizedEntries:
+          type: integer
+          format: int64
+          description: Number of entries vectorized
+          example: 27500
+        pendingEntries:
+          type: integer
+          format: int64
+          description: Number of entries pending vectorization
+          example: 500
+      required:
+        - totalEntries
+        - vectorizedEntries
+        - pendingEntries
+
+    TypeCount:
+      type: object
+      description: Foundry type with entry count
+      properties:
+        type:
+          type: string
+          description: Foundry type name
+          example: "spell"
+        count:
+          type: integer
+          format: int64
+          description: Number of entries of this type
+          example: 3000
+      required:
+        - type
+        - count
+
+    JobStatus:
+      type: string
+      description: Status of an asynchronous job
+      enum:
+        - PENDING
+        - RUNNING
+        - COMPLETED
+        - FAILED
+      example: "RUNNING"

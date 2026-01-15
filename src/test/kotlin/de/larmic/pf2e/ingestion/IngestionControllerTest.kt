@@ -38,38 +38,6 @@ class IngestionControllerTest {
     }
 
     @Nested
-    inner class PostIngestByType {
-
-        @Test
-        fun `returns 202 Accepted`() {
-            mockMvc.perform(post("/api/ingestion/type/spell"))
-                .andExpect(status().isAccepted)
-        }
-
-        @Test
-        fun `returns Location header with job URL`() {
-            mockMvc.perform(post("/api/ingestion/type/spell"))
-                .andExpect(header().exists("Location"))
-                .andExpect(header().string("Location", startsWith("/api/ingestion/jobs/")))
-        }
-
-        @Test
-        fun `returns job in response body`() {
-            mockMvc.perform(post("/api/ingestion/type/spell"))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.foundryType").value("SPELL"))
-                .andExpect(jsonPath("$.status").value("PENDING"))
-        }
-
-        @Test
-        fun `uses uppercase foundryType`() {
-            mockMvc.perform(post("/api/ingestion/type/feat"))
-                .andExpect(jsonPath("$.foundryType").value("FEAT"))
-        }
-    }
-
-    @Nested
     inner class PostIngestAll {
 
         @Test
@@ -93,6 +61,13 @@ class IngestionControllerTest {
                 .andExpect(jsonPath("$.foundryType").value("ALL"))
                 .andExpect(jsonPath("$.status").value("PENDING"))
         }
+
+        @Test
+        fun `accepts force parameter`() {
+            mockMvc.perform(post("/api/ingestion/all?force=true"))
+                .andExpect(status().isAccepted)
+                .andExpect(jsonPath("$.foundryType").value("ALL"))
+        }
     }
 
     @Nested
@@ -100,12 +75,12 @@ class IngestionControllerTest {
 
         @Test
         fun `returns job when exists`() {
-            val job = jobStore.create("SPELL")
+            val job = jobStore.create("ALL")
 
             mockMvc.perform(get("/api/ingestion/jobs/${job.id}"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.id").value(job.id.toString()))
-                .andExpect(jsonPath("$.foundryType").value("SPELL"))
+                .andExpect(jsonPath("$.foundryType").value("ALL"))
         }
 
         @Test
@@ -122,8 +97,8 @@ class IngestionControllerTest {
 
         @Test
         fun `returns all jobs`() {
-            jobStore.create("SPELL")
-            jobStore.create("FEAT")
+            jobStore.create("ALL")
+            jobStore.create("ALL")
 
             mockMvc.perform(get("/api/ingestion/jobs"))
                 .andExpect(status().isOk)

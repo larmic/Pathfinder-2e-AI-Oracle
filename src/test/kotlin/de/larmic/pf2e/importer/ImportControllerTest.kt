@@ -62,29 +62,6 @@ class ImportControllerTest {
     }
 
     @Nested
-    inner class PostImportCategory {
-
-        @Test
-        fun `returns 202 Accepted`() {
-            mockMvc.perform(post("/api/import/feats"))
-                .andExpect(status().isAccepted)
-        }
-
-        @Test
-        fun `returns Location header with job URL`() {
-            mockMvc.perform(post("/api/import/spells"))
-                .andExpect(header().exists("Location"))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("/api/import/jobs/")))
-        }
-
-        @Test
-        fun `uses uppercase category as itemType`() {
-            mockMvc.perform(post("/api/import/actions"))
-                .andExpect(jsonPath("$.itemType").value("ACTIONS"))
-        }
-    }
-
-    @Nested
     inner class GetCategories {
 
         @Test

@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.*
 import java.net.URI
 import java.util.*
 
+/**
+ * REST controller for importing Foundry VTT PF2e data from GitHub.
+ *
+ * Provides endpoints to trigger imports and track job status.
+ * Operations run asynchronously and return job IDs for status tracking.
+ */
 @RestController
 @RequestMapping("/api/import")
 class ImportController(
@@ -19,6 +25,11 @@ class ImportController(
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    /**
+     * Import all categories from GitHub.
+     *
+     * Only downloads files that are new or have changed (SHA comparison).
+     */
     @PostMapping("/all")
     fun importAll(): ResponseEntity<ImportJob> {
         val job = jobStore.create("ALL")
@@ -38,28 +49,15 @@ class ImportController(
             .body(job)
     }
 
-    @PostMapping("/{category}")
-    fun importCategory(@PathVariable category: String): ResponseEntity<ImportJob> {
-        val job = jobStore.create(category.uppercase())
-
-        scope.launch {
-            try {
-                val result = importService.importCategory(category, job.id)
-                jobStore.complete(job.id, result)
-            } catch (e: Exception) {
-                jobStore.fail(job.id, e.message ?: "Unknown error")
-            }
-        }
-
-        return ResponseEntity
-            .accepted()
-            .location(URI.create("/api/import/jobs/${job.id}"))
-            .body(job)
-    }
-
+    /**
+     * Get available categories for import.
+     */
     @GetMapping("/categories")
     fun getCategories(): List<String> = importService.getAvailableCategories()
 
+    /**
+     * Get job status by ID.
+     */
     @GetMapping("/jobs/{id}")
     fun getJobStatus(@PathVariable id: UUID): ResponseEntity<ImportJob> {
         val job = jobStore.findById(id)
@@ -67,9 +65,15 @@ class ImportController(
         return ResponseEntity.ok(job)
     }
 
+    /**
+     * Get all jobs.
+     */
     @GetMapping("/jobs")
     fun getAllJobs(): List<ImportJob> = jobStore.findAll()
 
+    /**
+     * Get import statistics.
+     */
     @GetMapping("/stats")
     fun getStats(): Map<String, Any> {
         val types = repository.findAllFoundryTypes()

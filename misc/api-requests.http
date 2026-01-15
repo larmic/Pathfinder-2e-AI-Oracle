@@ -2,21 +2,14 @@
 ### Pathfinder 2e AI Oracle - API Requests
 ### ===========================================
 ### Prerequisite: make run-local
+### OpenAPI spec: http://localhost:8080/openapi.yaml
 ### ===========================================
 
 ### ----------- Import API -----------
 
 ### Import all categories from GitHub
+### Only downloads files that are new or have changed (SHA comparison)
 POST http://localhost:8080/api/import/all
-
-### Import specific category (e.g., feats, spells, actions)
-POST http://localhost:8080/api/import/feats
-
-###
-POST http://localhost:8080/api/import/spells
-
-###
-POST http://localhost:8080/api/import/actions
 
 ### Get available import categories
 GET http://localhost:8080/api/import/categories
@@ -33,23 +26,12 @@ GET http://localhost:8080/api/import/jobs/{{jobId}}
 ### ----------- Ingestion API -----------
 ### (Vectorization for RAG - async with job tracking)
 
-### Ingest all entries into vector store (full re-index)
+### Ingest entries into vector store (incremental - only new/changed)
 POST http://localhost:8080/api/ingestion/all
 
-### Ingest all entries incrementally (only new/changed)
-POST http://localhost:8080/api/ingestion/all?incremental=true
-
-### Ingest specific type (full)
-POST http://localhost:8080/api/ingestion/type/spell
-
-###
-POST http://localhost:8080/api/ingestion/type/feat
-
-###
-POST http://localhost:8080/api/ingestion/type/action
-
-### Ingest specific type incrementally
-POST http://localhost:8080/api/ingestion/type/spell?incremental=true
+### Ingest all entries (full re-index)
+### Warning: May take 15-30 minutes with Ollama embeddings
+POST http://localhost:8080/api/ingestion/all?force=true
 
 ### Get all ingestion jobs
 GET http://localhost:8080/api/ingestion/jobs
