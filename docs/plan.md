@@ -13,7 +13,7 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
 ## 2. Implementation Phases
 
 ### Phase 1: Data Ingestion & Preprocessing
-- [ ] **Data Acquisition:** Download official rule JSONs (Spells, Feats, Items) from the Foundry PF2e repo.
+- [x] **Data Acquisition:** Download official rule JSONs (Spells, Feats, Items) from the Foundry PF2e repo.
     - **GitHub API Client** with optional token support (without token: 60 req/h, with token: 5000 req/h)
     - **Recursive traversal** of directory structure (subdirectories follow links from API response)
     - **Data model per item:**
@@ -26,7 +26,7 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
         - `lastSync` (timestamp of last sync)
         - `githubPath` (file path in repository)
     - **Change Detection:** During sync, `githubSha` is compared - only changed files are reloaded
-- [ ] **Parser Development:**
+- [x] **Parser Development:**
     - Kotlin Data Classes for extracting relevant fields (`name`, `description`, `traits`).
     - **Cleanup Logic:** Convert Foundry-specific tags (e.g., `@UUID`, `@Check`, `@Localize`) to plain text for better AI readability.
 - [ ] **Vectorization with Metadata:**

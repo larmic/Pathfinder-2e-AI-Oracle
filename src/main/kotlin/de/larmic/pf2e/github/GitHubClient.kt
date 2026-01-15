@@ -70,7 +70,9 @@ class GitHubClient(
 
     fun filterTreeEntries(tree: GitHubTreeResponse, pathPrefix: String): List<GitHubTreeEntry> {
         return tree.tree.filter { entry ->
-            entry.isJsonFile() && entry.path.startsWith(pathPrefix)
+            entry.isJsonFile()
+                && entry.path.startsWith(pathPrefix)
+                && !entry.path.endsWith("_folders.json")
         }
     }
 }

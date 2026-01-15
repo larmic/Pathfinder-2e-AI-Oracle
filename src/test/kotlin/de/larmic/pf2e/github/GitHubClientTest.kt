@@ -95,6 +95,27 @@ class GitHubClientTest {
             assertThat(result).hasSize(1)
             assertThat(result.all { it.isFile() }).isTrue()
         }
+
+        @Test
+        fun `excludes _folders json files`() {
+            val properties = GitHubProperties()
+            val client = GitHubClient(properties)
+            val tree = createTreeResponse(listOf(
+                createTreeEntry("packs/pf2e/feats/test.json", "blob", "sha1"),
+                createTreeEntry("packs/pf2e/feats/_folders.json", "blob", "sha2"),
+                createTreeEntry("packs/pf2e/spells/_folders.json", "blob", "sha3"),
+                createTreeEntry("packs/pf2e/spells/fireball.json", "blob", "sha4")
+            ))
+
+            val result = client.filterTreeEntries(tree, "packs/pf2e")
+
+            assertThat(result).hasSize(2)
+            assertThat(result.map { it.path }).containsExactlyInAnyOrder(
+                "packs/pf2e/feats/test.json",
+                "packs/pf2e/spells/fireball.json"
+            )
+            assertThat(result.none { it.path.endsWith("_folders.json") }).isTrue()
+        }
     }
 
     @Nested
