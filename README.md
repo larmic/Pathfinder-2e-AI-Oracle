@@ -69,6 +69,20 @@ Source data is in English for maximum accuracy. The AI Oracle bridges languages:
 5. **MCP Server:** Exposes search tools via Model Context Protocol
 6. **AI Clients:** External AI models (Claude, GPT-4) call the MCP tools to retrieve accurate rule data
 
+### AI Models (Local Development)
+
+The local development setup uses two separate Ollama models:
+
+| Model | Type | Purpose | Size |
+|-------|------|---------|------|
+| `nomic-embed-text` | Embedding | Converts text to 768-dimensional vectors | ~274 MB |
+| `llama3.2` | Chat/LLM | Generates natural language responses | ~2 GB |
+
+**RAG Workflow:**
+1. **Ingestion:** Rule text → `nomic-embed-text` → vectors → PGVector
+2. **Retrieval:** User query → `nomic-embed-text` → similarity search → relevant documents
+3. **Generation:** Retrieved context + query → `llama3.2` → answer
+
 ### Key Point
 The embedding provider is configurable via Spring Profiles. Both providers use the same PGVector database - only the embedding generation differs.
 
