@@ -19,5 +19,13 @@ else
     echo "nomic-embed-text model already available"
 fi
 
+if ! ollama list | grep -q "llama3.2"; then
+    echo "Pulling llama3.2 model..."
+    ollama pull llama3.2
+    echo "llama3.2 model ready!"
+else
+    echo "llama3.2 model already available"
+fi
+
 # Keep container running
 wait

@@ -50,4 +50,10 @@ ollama-logs: ## Show Ollama logs
 
 # Run with Profiles
 run-local: dev-start ## Start application with local DB and Ollama (docker-compose)
+	@echo "Waiting for Ollama models to be ready (this may take a few minutes on first run)..."
+	@until docker inspect --format='{{.State.Health.Status}}' pf2e-ollama 2>/dev/null | grep -q healthy; do \
+		echo "  Ollama is still loading models... (check with: make ollama-logs)"; \
+		sleep 10; \
+	done
+	@echo "Ollama is ready!"
 	./mvnw spring-boot:run -Dspring-boot.run.profiles=local
