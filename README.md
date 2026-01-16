@@ -71,3 +71,58 @@ Source data is in English for maximum accuracy. The AI Oracle bridges languages:
 
 ### Key Point
 The embedding provider is configurable via Spring Profiles. Both providers use the same PGVector database - only the embedding generation differs.
+
+## Testing the MCP Server
+
+The MCP server uses **SSE (Server-Sent Events) transport**, which requires a session to be established before sending messages. A direct POST to `/mcp/message` will return `"Session ID missing in message endpoint"` because there's no session context.
+
+### Option A: Use an MCP Client (Recommended)
+
+Configure an MCP-compatible client like Claude Desktop or Cursor:
+
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "pf2e-oracle": {
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}
+```
+
+### Option B: Use mcp-cli Tool
+
+Install and use the official MCP CLI inspector:
+```bash
+npx @anthropic-ai/mcp-inspector http://localhost:8080/sse
+```
+
+### Option C: Manual SSE Testing with curl
+
+1. **Open SSE connection** (in terminal 1):
+   ```bash
+   curl -N http://localhost:8080/sse
+   ```
+   This will output events including the session ID.
+
+2. **Send message with session ID** (in terminal 2):
+   ```bash
+   curl -X POST "http://localhost:8080/mcp/message?sessionId=YOUR_SESSION_ID" \
+     -H "Content-Type: application/json" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+   ```
+
+### Available MCP Tools
+
+Once connected, the server exposes these tools:
+
+| Tool | Description |
+|------|-------------|
+| `searchRules` | Search general PF2e rules, mechanics, and game information |
+| `searchSpells` | Search spells with optional level filtering |
+| `searchFeats` | Search feats with optional maxLevel filtering |
+| `searchActions` | Search actions and activities |
+| `searchEquipment` | Search equipment with optional maxLevel and rarity filtering |
+| `searchConditions` | Search conditions and status effects |
+| `getEntry` | Get a specific entry by its exact name |
