@@ -1,9 +1,7 @@
 package de.larmic.pf2e.ingestion
 
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import de.larmic.pf2e.job.AsyncJobExecutor
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URI
@@ -21,10 +19,9 @@ import java.util.*
 class IngestionController(
     private val ingestionService: IngestionService,
     private val repository: FoundryRawEntryRepository,
-    private val jobStore: IngestionJobStore
+    private val jobStore: IngestionJobStore,
+    private val asyncJobExecutor: AsyncJobExecutor
 ) {
-
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     /**
      * Ingest all entries into the vector store.
@@ -40,7 +37,7 @@ class IngestionController(
     ): ResponseEntity<IngestionJob> {
         val job = jobStore.create("ALL")
 
-        scope.launch {
+        asyncJobExecutor.execute {
             try {
                 val result = if (force) {
                     ingestionService.ingestAll(job.id)

@@ -1,5 +1,6 @@
 package de.larmic.pf2e.importer
 
+import de.larmic.pf2e.job.JobStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested

@@ -1,20 +1,22 @@
 package de.larmic.pf2e.importer
 
 import com.fasterxml.uuid.Generators
+import de.larmic.pf2e.job.Job
+import de.larmic.pf2e.job.JobStatus
 import java.time.Instant
 import java.util.*
 
 data class ImportJob(
-    val id: UUID = Generators.timeBasedEpochGenerator().generate(),
+    override val id: UUID = Generators.timeBasedEpochGenerator().generate(),
     val itemType: String,
-    val status: JobStatus = JobStatus.PENDING,
-    val createdAt: Instant = Instant.now(),
-    val startedAt: Instant? = null,
-    val completedAt: Instant? = null,
+    override val status: JobStatus = JobStatus.PENDING,
+    override val createdAt: Instant = Instant.now(),
+    override val startedAt: Instant? = null,
+    override val completedAt: Instant? = null,
     val progress: ImportProgress = ImportProgress(),
     val result: ImportResult? = null,
-    val errorMessage: String? = null
-)
+    override val errorMessage: String? = null
+) : Job
 
 data class ImportProgress(
     val totalFiles: Int = 0,
@@ -23,11 +25,4 @@ data class ImportProgress(
 ) {
     val percentComplete: Int
         get() = if (totalFiles > 0) (processedFiles * 100) / totalFiles else 0
-}
-
-enum class JobStatus {
-    PENDING,
-    RUNNING,
-    COMPLETED,
-    FAILED
 }

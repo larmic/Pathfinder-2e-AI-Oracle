@@ -2,6 +2,7 @@ package de.larmic.pf2e.ingestion
 
 import com.ninjasquad.springmockk.MockkBean
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
+import de.larmic.pf2e.job.AsyncJobExecutor
 import io.mockk.every
 import org.hamcrest.Matchers.startsWith
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +18,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
 
 @WebMvcTest(IngestionController::class)
-@Import(IngestionJobStore::class)
+@Import(IngestionJobStore::class, AsyncJobExecutor::class)
 class IngestionControllerTest {
 
     @Autowired

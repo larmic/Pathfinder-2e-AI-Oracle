@@ -12,7 +12,7 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
 
 ## 2. Implementation Phases
 
-### Phase 1: Data Ingestion & Preprocessing
+### Phase 1: Data Ingestion & Preprocessing (Completed)
 - [x] **Data Acquisition:** Download official rule JSONs (Spells, Feats, Items) from the Foundry PF2e repo.
     - **GitHub API Client** with optional token support (without token: 60 req/h, with token: 5000 req/h)
     - **Recursive traversal** of directory structure (subdirectories follow links from API response)
@@ -33,7 +33,7 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
     - Implement `IngestionService`.
     - **Important:** Traits and level are stored as explicit metadata in the `VectorStore` to enable hard-filtering (e.g., "search only spells with trait 'Fire'").
 
-### Phase 2: Rules Intelligence (The Core)
+### Phase 2: Rules Intelligence (The Core) - Planned
 - [ ] **RAG Service:** Create a service for similarity search with metadata filters.
     - New file: `src/main/kotlin/de/larmic/pf2e/rag/RagService.kt`
     - Use `@Tool` annotations for MCP exposure
@@ -65,7 +65,7 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
     - System prompt optimization: "Respond in the user's language, keeping English technical terms in parentheses."
 - [ ] **Tool Definition:** Annotate search functions with `@Tool` (Spring AI) so the AI can search specific categories (e.g., `searchSpells`, `searchFeats`).
 
-### Phase 3: MCP Interface (The Connection)
+### Phase 3: MCP Interface (The Connection) - Planned
 - [ ] **MCP Configuration:** Integrate `spring-ai-mcp-starter`.
 - [ ] **Tool Exposure:** Provide RAG searches as MCP tools.
 - [ ] **Client Test:** Connect to Claude Desktop via Stdio for local testing.
@@ -83,9 +83,14 @@ To avoid hallucinations and provide precise answers, a **RAG approach (Retrieval
 - **Production:** Docker container on small VPS
 - **Important:** Ollama must be running for embedding generation (both data ingestion AND query processing)
 
-## 4. Next Steps
-1. ~~Add Spring AI & MCP dependencies to `pom.xml`.~~ (Done)
-2. ~~Implement `PathfinderDataImporter.kt` including `@UUID` cleanup.~~ (Done)
-3. Implement RAG Service with `@Tool` annotations
-4. Configure MCP server for tool exposure
-5. Test with Claude Desktop: "How does the 'Incapacitation' rule work?"
+## 4. Current Status
+
+The project has completed **Phase 1** with the following components implemented:
+
+- **GitHub Import Service:** Downloads Foundry VTT JSON data with incremental sync (SHA-based change detection)
+- **Foundry Content Parser:** Cleans up Foundry-specific tags (~14 types) for AI readability
+- **Ingestion Service:** Vectorizes entries into PGVector with metadata for filtering
+- **REST API:** Endpoints for triggering import/ingestion jobs and tracking status
+- **Async Job System:** Properly managed coroutine scopes with lifecycle-aware job execution
+
+**Next steps:** Implement Phase 2 (RAG Service with `@Tool` annotations) and Phase 3 (MCP Server).

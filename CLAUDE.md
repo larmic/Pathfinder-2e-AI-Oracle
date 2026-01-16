@@ -12,9 +12,14 @@ Pathfinder 2e AI Oracle - a multilingual AI-powered rules assistant for the Path
 - **Framework**: Spring Boot 4.0.1 with Spring AI 2.0.0-M1
 - **Interface**: MCP (Model Context Protocol) server for integration with Claude, GPT-4, etc.
 - **Data Source**: JSON files from the Foundry VTT PF2e repository (https://github.com/foundryvtt/pf2e)
-- **Vector Store**: SimpleVectorStore initially, PGVector (PostgreSQL) for production
-- **Local Development**: Ollama for local LLM testing
+- **Vector Store**: PGVector (PostgreSQL) for all environments
+- **Embeddings**: Ollama (local development), OpenAI (production - planned)
 - **JDK**: Java 25 (GraalVM CE)
+
+## Spring Profiles
+
+- `local`: Uses local PostgreSQL and Ollama via Docker Compose
+- `openai`: Uses OpenAI for embeddings (planned)
 
 ## My Preferences
 
@@ -40,10 +45,11 @@ Alternatively with Maven Wrapper:
 ## Architecture
 
 The system follows a RAG pattern:
-1. **Data Ingestion**: Parse Foundry PF2e JSONs (spells, feats, items), clean up Foundry-specific tags (`@UUID`, `@Check`, `@Localize`), vectorize with metadata (traits, level) for filtering
-2. **RAG Service**: Similarity search with metadata filters exposed as Spring AI `@Tool` annotated methods (`searchSpells`, `searchFeats`, etc.)
-3. **MCP Server**: Exposes RAG tools via Model Context Protocol for external AI clients
-4. **Translation Layer**: English source data with multilingual output using glossary mappings for official terminology
+1. **Data Import** (implemented): Download Foundry PF2e JSONs from GitHub with incremental sync (SHA-based change detection)
+2. **Data Ingestion** (implemented): Parse and clean Foundry-specific tags (`@UUID`, `@Check`, `@Localize`), vectorize with metadata (traits, level) for filtering
+3. **RAG Service** (planned): Similarity search with metadata filters exposed as Spring AI `@Tool` annotated methods (`searchSpells`, `searchFeats`, etc.)
+4. **MCP Server** (planned): Exposes RAG tools via Model Context Protocol for external AI clients
+5. **Translation Layer** (planned): English source data with multilingual output using glossary mappings for official terminology
 
 ## Key Design Decisions
 

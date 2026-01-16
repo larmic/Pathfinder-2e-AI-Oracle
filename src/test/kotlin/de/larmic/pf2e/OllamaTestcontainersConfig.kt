@@ -43,7 +43,7 @@ class OllamaTestcontainersConfig {
 
     @Bean
     fun ollamaContainer(): OllamaContainer =
-        OllamaContainer(DockerImageName.parse("ollama/ollama:latest"))
+        OllamaContainer(DockerImageName.parse("ollama/ollama:0.5.4"))
             .withReuse(true)
 
     @Bean

@@ -2,6 +2,7 @@ package de.larmic.pf2e.importer
 
 import com.ninjasquad.springmockk.MockkBean
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
+import de.larmic.pf2e.job.AsyncJobExecutor
 import io.mockk.every
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -16,7 +17,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
 
 @WebMvcTest(ImportController::class)
-@Import(ImportJobStore::class)
+@Import(ImportJobStore::class, AsyncJobExecutor::class)
 class ImportControllerTest {
 
     @Autowired

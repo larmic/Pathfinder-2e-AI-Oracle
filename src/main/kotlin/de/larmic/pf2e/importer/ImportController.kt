@@ -1,9 +1,7 @@
 package de.larmic.pf2e.importer
 
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import de.larmic.pf2e.job.AsyncJobExecutor
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URI
@@ -20,10 +18,9 @@ import java.util.*
 class ImportController(
     private val importService: FoundryImportService,
     private val repository: FoundryRawEntryRepository,
-    private val jobStore: ImportJobStore
+    private val jobStore: ImportJobStore,
+    private val asyncJobExecutor: AsyncJobExecutor
 ) {
-
-    private val scope = CoroutineScope(Dispatchers.IO)
 
     /**
      * Import all categories from GitHub.
@@ -34,7 +31,7 @@ class ImportController(
     fun importAll(): ResponseEntity<ImportJob> {
         val job = jobStore.create("ALL")
 
-        scope.launch {
+        asyncJobExecutor.execute {
             try {
                 val result = importService.importAll(job.id)
                 jobStore.complete(job.id, result)
