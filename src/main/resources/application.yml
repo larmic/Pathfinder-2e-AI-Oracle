@@ -32,6 +32,8 @@ spring:
       server:
         name: pf2e-oracle
         version: 0.0.1
+        type: SYNC
+        sse-message-endpoint: /mcp/message
 
 github:
   token: ${GITHUB_TOKEN:}

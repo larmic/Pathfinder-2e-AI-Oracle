@@ -162,14 +162,34 @@ class FoundryImportService(
         val rawJson = gitHubClient.getRawContent(entry.path)
         val jsonNode = objectMapper.readTree(rawJson)
 
-        val foundryEntry = FoundryRawEntry(
-            foundryId = jsonNode.get("_id")?.asText() ?: "",
-            foundryType = jsonNode.get("type")?.asText() ?: "unknown",
-            name = jsonNode.get("name")?.asText() ?: entry.path.substringAfterLast("/").removeSuffix(".json"),
-            rawJsonContent = rawJson,
-            githubSha = entry.sha,
-            githubPath = entry.path
-        )
+        val foundryId = jsonNode.get("_id")?.asText() ?: ""
+        val foundryType = jsonNode.get("type")?.asText() ?: "unknown"
+        val name = jsonNode.get("name")?.asText() ?: entry.path.substringAfterLast("/").removeSuffix(".json")
+
+        // Look up existing entry to UPDATE instead of INSERT
+        val existingEntry = repository.findByGithubPath(entry.path)
+
+        val foundryEntry = if (existingEntry != null) {
+            // Update existing entry (keep same id)
+            existingEntry.copy(
+                foundryId = foundryId,
+                foundryType = foundryType,
+                name = name,
+                rawJsonContent = rawJson,
+                githubSha = entry.sha,
+                lastSync = Instant.now()
+            )
+        } else {
+            // Create new entry
+            FoundryRawEntry(
+                foundryId = foundryId,
+                foundryType = foundryType,
+                name = name,
+                rawJsonContent = rawJson,
+                githubSha = entry.sha,
+                githubPath = entry.path
+            )
+        }
 
         repository.save(foundryEntry)
         log.debug("Imported: {} ({}) - type: {}", foundryEntry.name, foundryEntry.githubPath, foundryEntry.foundryType)

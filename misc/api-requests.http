@@ -44,3 +44,19 @@ GET http://localhost:8080/api/ingestion/types
 
 ### Get ingestion statistics (total, vectorized, pending)
 GET http://localhost:8080/api/ingestion/stats
+
+
+###
+# curl -X POST http://localhost:8080/mcp/message
+#    -H "Content-Type: application/json"
+#    -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+POST http://localhost:8080/mcp/message
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list"
+}
+
+###
