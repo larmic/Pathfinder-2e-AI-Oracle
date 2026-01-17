@@ -25,6 +25,12 @@ services:
       - ollama_data:/root/.ollama
       - ./ollama-entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+        reservations:
+          memory: 5g
     healthcheck:
       test: ["CMD-SHELL", "ollama list | grep -q nomic-embed-text && ollama list | grep -q qwen2.5:7b"]
       interval: 10s
