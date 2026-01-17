@@ -56,10 +56,19 @@ ollama-status: ## Show available Ollama models
 
 # Run with Profiles
 run-local: dev-start ## Start application with local DB and Ollama (docker-compose)
+	@echo ""
 	@echo "Waiting for Ollama models to be ready (this may take a few minutes on first run)..."
+	@echo ""
 	@until docker inspect --format='{{.State.Health.Status}}' pf2e-ollama 2>/dev/null | grep -q healthy; do \
-		echo "  Ollama is still loading models... (check with: make ollama-logs)"; \
-		sleep 10; \
+		PROGRESS=$$(docker compose -f misc/docker-compose.yml logs ollama 2>/dev/null | grep -E '(pulling|verifying|writing)' | tail -1 | sed 's/pf2e-ollama  | //'); \
+		if [ -n "$$PROGRESS" ]; then \
+			echo "  $$PROGRESS"; \
+		else \
+			echo "  Ollama is starting..."; \
+		fi; \
+		sleep 5; \
 	done
+	@echo ""
 	@echo "Ollama is ready!"
+	@echo ""
 	./mvnw spring-boot:run -Dspring-boot.run.profiles=local
