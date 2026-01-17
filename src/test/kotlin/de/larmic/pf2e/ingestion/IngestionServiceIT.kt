@@ -78,15 +78,9 @@ class IngestionServiceIT {
         )
 
         // When: We ingest the entry
-        val document = ingestionService.ingestEntry(entry)
+        ingestionService.ingestEntry(entry)
 
-        // Then: The document is created with correct content
-        assertThat(document.text).contains("Fireball")
-        assertThat(document.text).contains("fire damage")
-        assertThat(document.metadata["foundryType"]).isEqualTo("spell")
-        assertThat(document.metadata["level"]).isEqualTo(3)
-
-        // And: We can search for it via similarity
+        // Then: We can search for it via similarity and verify the document
         val results = vectorStore.similaritySearch(
             SearchRequest.builder()
                 .query("fire damage spell")
@@ -95,7 +89,11 @@ class IngestionServiceIT {
         )
 
         assertThat(results).isNotEmpty()
-        assertThat(results.first().text).contains("Fireball")
+        val document = results.first()
+        assertThat(document.text).contains("Fireball")
+        assertThat(document.text).contains("fire damage")
+        assertThat(document.metadata["foundryType"]).isEqualTo("spell")
+        assertThat(document.metadata["level"]).isEqualTo(3)
     }
 
     @Test

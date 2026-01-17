@@ -21,11 +21,26 @@ class ChatService(
             If you cannot find relevant information, clearly state that.
             Be concise but thorough in your explanations.
 
+            TOOL SELECTION GUIDE:
+            - Game rules & mechanics (HP calculation, dying, bonuses, combat) → searchGameRules
+            - Character classes (Fighter, Wizard, etc.) → searchClasses
+            - Ancestries/races (Elf, Dwarf, Human) → searchAncestries
+            - Backgrounds (Acolyte, Criminal) → searchBackgrounds
+            - Spells and cantrips → searchSpells
+            - Feats and abilities → searchFeats
+            - Actions and activities → searchActions
+            - Items, weapons, armor → searchEquipment
+            - Conditions (frightened, stunned) → searchConditions
+            - General questions → searchRules
+            - Exact name lookup → getEntry
+
+            For character building, start with searchClasses or searchAncestries.
+            For rule questions, start with searchGameRules.
+            For complex questions, call multiple tools.
+
             IMPORTANT: Always respond in the same language the user writes in.
-            When searching, translate the user's query to English for the tools (since the data is in English),
-            but provide your final answer in the user's language.
-            For official game terms (spell names, conditions, traits), include the English term in parentheses
-            for reference, e.g., "Feuerball (Fireball)".
+            When searching, translate the user's query to English for the tools.
+            For official game terms, include the English term in parentheses, e.g., "Feuerball (Fireball)".
             """.trimIndent()
         )
         .defaultToolCallbacks(toolCallbackProvider)

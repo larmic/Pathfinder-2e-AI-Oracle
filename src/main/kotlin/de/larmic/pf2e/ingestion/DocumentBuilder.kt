@@ -59,4 +59,51 @@ class DocumentBuilder(
 
         return Document(entry.id.toString(), content.trim(), metadata)
     }
+
+    /**
+     * Checks if an entry is a journal (has pages array).
+     */
+    fun isJournal(entry: FoundryRawEntry): Boolean {
+        val node = objectMapper.readTree(entry.rawJsonContent)
+        val pagesNode = node.path("pages")
+        return pagesNode.isArray && !pagesNode.isEmpty
+    }
+
+    /**
+     * Builds multiple Documents from a Journal entry (one per page).
+     */
+    fun buildJournalDocuments(entry: FoundryRawEntry): List<Document> {
+        val node = objectMapper.readTree(entry.rawJsonContent)
+        val pagesNode = node.path("pages")
+
+        if (!pagesNode.isArray || pagesNode.isEmpty) {
+            return emptyList()
+        }
+
+        return pagesNode.mapIndexedNotNull { index, pageNode ->
+            val pageName = pageNode.path("name").asText("")
+            val pageContent = pageNode.path("text").path("content").asText("")
+
+            if (pageContent.isBlank()) return@mapIndexedNotNull null
+
+            val cleanContent = contentParser.cleanContent(pageContent)
+
+            val content = buildString {
+                appendLine("Name: ${entry.name} - $pageName")
+                appendLine("Type: Game Rules (Journal)")
+                appendLine()
+                appendLine(cleanContent)
+            }
+
+            val metadata = mapOf(
+                "foundryType" to "journal",
+                "foundryId" to entry.foundryId,
+                "name" to "${entry.name} - $pageName",
+                "journalName" to entry.name,
+                "pageName" to pageName
+            )
+
+            Document("${entry.id}-page-$index", content.trim(), metadata)
+        }
+    }
 }

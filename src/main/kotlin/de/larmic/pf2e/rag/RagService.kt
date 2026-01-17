@@ -131,6 +131,58 @@ class RagService(
         return toSearchResults(query, results)
     }
 
+    @Tool(description = "Search for Pathfinder 2e character classes (Fighter, Champion, Wizard, etc.). Use this for questions about class features, abilities, proficiencies, and which class to play.")
+    fun searchClasses(
+        @ToolParam(description = "The search query describing what class or playstyle you're looking for")
+        query: String,
+        @ToolParam(description = "Maximum number of results (default: 5)", required = false)
+        maxResults: Int?
+    ): SearchResults {
+        val filterBuilder = FilterExpressionBuilder()
+        val filter = filterBuilder.eq("foundryType", "class")
+        val results = executeSearch(query, maxResults ?: DEFAULT_TOP_K, filter.build())
+        return toSearchResults(query, results)
+    }
+
+    @Tool(description = "Search for Pathfinder 2e ancestries (Human, Elf, Dwarf, etc.). Use this for questions about racial abilities and ancestry feats.")
+    fun searchAncestries(
+        @ToolParam(description = "The search query describing the ancestry you're looking for")
+        query: String,
+        @ToolParam(description = "Maximum number of results (default: 5)", required = false)
+        maxResults: Int?
+    ): SearchResults {
+        val filterBuilder = FilterExpressionBuilder()
+        val filter = filterBuilder.eq("foundryType", "ancestry")
+        val results = executeSearch(query, maxResults ?: DEFAULT_TOP_K, filter.build())
+        return toSearchResults(query, results)
+    }
+
+    @Tool(description = "Search for Pathfinder 2e backgrounds (Acolyte, Criminal, Scholar, etc.). Use this for character backstory options.")
+    fun searchBackgrounds(
+        @ToolParam(description = "The search query describing the background you're looking for")
+        query: String,
+        @ToolParam(description = "Maximum number of results (default: 5)", required = false)
+        maxResults: Int?
+    ): SearchResults {
+        val filterBuilder = FilterExpressionBuilder()
+        val filter = filterBuilder.eq("foundryType", "background")
+        val results = executeSearch(query, maxResults ?: DEFAULT_TOP_K, filter.build())
+        return toSearchResults(query, results)
+    }
+
+    @Tool(description = "Search for Pathfinder 2e game rules, mechanics, and GM reference material. Use this for questions about how the game works (combat, skills, dying, bonuses).")
+    fun searchGameRules(
+        @ToolParam(description = "The search query about game mechanics or rules")
+        query: String,
+        @ToolParam(description = "Maximum number of results (default: 5)", required = false)
+        maxResults: Int?
+    ): SearchResults {
+        val filterBuilder = FilterExpressionBuilder()
+        val filter = filterBuilder.eq("foundryType", "journal")
+        val results = executeSearch(query, maxResults ?: DEFAULT_TOP_K, filter.build())
+        return toSearchResults(query, results)
+    }
+
     @Tool(description = "Get a specific Pathfinder 2e entry by its exact name. Use this when you know the exact name of what you're looking for.")
     fun getEntry(
         @ToolParam(description = "The exact name of the entry (e.g., 'Fireball', 'Power Attack')")

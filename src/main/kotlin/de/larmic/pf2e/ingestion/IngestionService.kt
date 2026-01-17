@@ -77,13 +77,24 @@ class IngestionService(
     /**
      * Ingest a single entry by its database entity.
      */
-    fun ingestEntry(entry: FoundryRawEntry): Document {
+    fun ingestEntry(entry: FoundryRawEntry) {
+        // Check if it's a journal entry
+        if (documentBuilder.isJournal(entry)) {
+            val documents = documentBuilder.buildJournalDocuments(entry)
+            if (documents.isNotEmpty()) {
+                vectorStore.add(documents)
+                repository.markAsVectorized(entry.id)
+                log.debug("Ingested journal '{}' with {} pages", entry.name, documents.size)
+            }
+            return
+        }
+
+        // Normal entry processing
         val metadata = metadataExtractor.extractMetadata(entry.rawJsonContent, entry.foundryType)
         val document = documentBuilder.buildDocument(entry, metadata)
         vectorStore.add(listOf(document))
         repository.markAsVectorized(entry.id)
         log.debug("Ingested single entry: {} ({})", entry.name, entry.foundryType)
-        return document
     }
 
     private fun ingestEntries(
@@ -109,12 +120,16 @@ class IngestionService(
             try {
                 // Parallel document building with semaphore throttling
                 val futures = batch.map { entry ->
-                    executor.submit<Pair<FoundryRawEntry, Document>?> {
+                    executor.submit<Pair<FoundryRawEntry, List<Document>>?> {
                         semaphore.acquire()
                         try {
-                            val metadata = metadataExtractor.extractMetadata(entry.rawJsonContent, entry.foundryType)
-                            val doc = documentBuilder.buildDocument(entry, metadata)
-                            entry to doc
+                            val docs = if (documentBuilder.isJournal(entry)) {
+                                documentBuilder.buildJournalDocuments(entry)
+                            } else {
+                                val metadata = metadataExtractor.extractMetadata(entry.rawJsonContent, entry.foundryType)
+                                listOf(documentBuilder.buildDocument(entry, metadata))
+                            }
+                            if (docs.isNotEmpty()) entry to docs else null
                         } catch (e: Exception) {
                             log.warn("Failed to build document for {}: {}", entry.name, e.message)
                             errors.incrementAndGet()
@@ -129,7 +144,8 @@ class IngestionService(
                 val results = futures.mapNotNull { it.get() }
 
                 if (results.isNotEmpty()) {
-                    vectorStore.add(results.map { it.second })
+                    val allDocuments = results.flatMap { it.second }
+                    vectorStore.add(allDocuments)
                     processed.addAndGet(results.size)
 
                     if (markVectorized) {
