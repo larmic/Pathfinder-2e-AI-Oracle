@@ -1,5 +1,6 @@
 package de.larmic.pf2e.chat
 
+import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.tool.ToolCallbackProvider
 import org.springframework.stereotype.Service
@@ -9,6 +10,8 @@ class ChatService(
     chatClientBuilder: ChatClient.Builder,
     toolCallbackProvider: ToolCallbackProvider
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     private val chatClient = chatClientBuilder
         .defaultSystem(
             """
@@ -29,9 +32,17 @@ class ChatService(
         .build()
 
     fun chat(message: String): String {
-        return chatClient.prompt()
+        log.debug("Starting LLM call")
+        val startTime = System.currentTimeMillis()
+
+        val result = chatClient.prompt()
             .user(message)
             .call()
             .content() ?: "No response received"
+
+        val duration = System.currentTimeMillis() - startTime
+        log.debug("LLM call completed in {}ms", duration)
+
+        return result
     }
 }

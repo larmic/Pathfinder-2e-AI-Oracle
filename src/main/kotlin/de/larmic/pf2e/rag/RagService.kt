@@ -1,5 +1,6 @@
 package de.larmic.pf2e.rag
 
+import org.slf4j.LoggerFactory
 import org.springframework.ai.document.Document
 import org.springframework.ai.tool.annotation.Tool
 import org.springframework.ai.tool.annotation.ToolParam
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service
 class RagService(
     private val vectorStore: VectorStore
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     companion object {
         private const val DEFAULT_TOP_K = 5
@@ -152,6 +154,9 @@ class RagService(
         topK: Int,
         filterExpression: org.springframework.ai.vectorstore.filter.Filter.Expression? = null
     ): List<Document> {
+        log.info("RAG search: query='{}', topK={}, filter={}", query.take(50), topK, filterExpression)
+        val startTime = System.currentTimeMillis()
+
         val requestBuilder = SearchRequest.builder()
             .query(query)
             .topK(topK)
@@ -160,7 +165,12 @@ class RagService(
             requestBuilder.filterExpression(it)
         }
 
-        return vectorStore.similaritySearch(requestBuilder.build())
+        val results = vectorStore.similaritySearch(requestBuilder.build())
+
+        val duration = System.currentTimeMillis() - startTime
+        log.info("RAG search completed in {}ms, results: {}", duration, results.size)
+
+        return results
     }
 
     private fun toSearchResults(query: String, documents: List<Document>): SearchResults {
