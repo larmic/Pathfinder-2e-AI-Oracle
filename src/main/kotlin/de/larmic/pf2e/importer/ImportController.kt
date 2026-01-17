@@ -1,5 +1,8 @@
 package de.larmic.pf2e.importer
 
+import de.larmic.pf2e.cleanup.CleanupResult
+import de.larmic.pf2e.cleanup.OrphanCleanupService
+import de.larmic.pf2e.cleanup.OrphanInfo
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import de.larmic.pf2e.job.AsyncJobExecutor
 import org.springframework.http.ResponseEntity
@@ -19,7 +22,8 @@ class ImportController(
     private val importService: FoundryImportService,
     private val repository: FoundryRawEntryRepository,
     private val jobStore: ImportJobStore,
-    private val asyncJobExecutor: AsyncJobExecutor
+    private val asyncJobExecutor: AsyncJobExecutor,
+    private val orphanCleanupService: OrphanCleanupService
 ) {
 
     /**
@@ -78,5 +82,24 @@ class ImportController(
             "total" to repository.count(),
             "byType" to types.associateWith { repository.countByFoundryType(it) }
         )
+    }
+
+    /**
+     * Preview orphaned entries without deleting them.
+     *
+     * Orphans are entries in the database whose source files no longer exist in GitHub.
+     */
+    @GetMapping("/cleanup/preview")
+    fun previewCleanup(): List<OrphanInfo> = orphanCleanupService.detectOrphans()
+
+    /**
+     * Clean up orphaned entries from database and vector store.
+     *
+     * Deletes entries that no longer exist in the GitHub repository.
+     */
+    @PostMapping("/cleanup")
+    fun cleanupOrphans(): ResponseEntity<CleanupResult> {
+        val result = orphanCleanupService.cleanupOrphans()
+        return ResponseEntity.ok(result)
     }
 }

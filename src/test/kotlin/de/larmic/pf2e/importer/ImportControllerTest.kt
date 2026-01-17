@@ -1,6 +1,7 @@
 package de.larmic.pf2e.importer
 
 import com.ninjasquad.springmockk.MockkBean
+import de.larmic.pf2e.cleanup.OrphanCleanupService
 import de.larmic.pf2e.domain.FoundryRawEntryRepository
 import de.larmic.pf2e.job.AsyncJobExecutor
 import io.mockk.every
@@ -28,6 +29,9 @@ class ImportControllerTest {
 
     @MockkBean
     private lateinit var repository: FoundryRawEntryRepository
+
+    @MockkBean
+    private lateinit var orphanCleanupService: OrphanCleanupService
 
     @Autowired
     private lateinit var jobStore: ImportJobStore

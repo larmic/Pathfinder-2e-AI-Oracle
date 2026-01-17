@@ -26,11 +26,11 @@ services:
       - ./ollama-entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q nomic-embed-text && ollama list | grep -q llama3.2"]
+      test: ["CMD-SHELL", "ollama list | grep -q nomic-embed-text && ollama list | grep -q qwen2.5:7b"]
       interval: 10s
       timeout: 5s
       retries: 60
-      start_period: 120s
+      start_period: 180s
 
 volumes:
   pf2e_data:

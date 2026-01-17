@@ -57,6 +57,6 @@ class DocumentBuilder(
             }
         }
 
-        return Document(content.trim(), metadata)
+        return Document(entry.id.toString(), content.trim(), metadata)
     }
 }

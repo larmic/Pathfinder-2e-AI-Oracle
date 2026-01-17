@@ -1,4 +1,4 @@
-.PHONY: build clean compile test run package help dev-start dev-stop dev-clean db-logs db-psql ollama-pull ollama-logs run-local
+.PHONY: build clean compile test run package help dev-start dev-stop dev-clean db-logs db-psql ollama-pull ollama-logs ollama-recreate ollama-status run-local
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -43,10 +43,16 @@ db-psql: ## Open PostgreSQL CLI
 # Ollama Commands
 ollama-pull: ## Pull required Ollama models
 	docker exec -it pf2e-ollama ollama pull nomic-embed-text
-	docker exec -it pf2e-ollama ollama pull llama3.2
+	docker exec -it pf2e-ollama ollama pull qwen2.5:7b
 
 ollama-logs: ## Show Ollama logs
 	docker compose -f misc/docker-compose.yml logs -f ollama
+
+ollama-recreate: ## Recreate Ollama container (re-runs entrypoint, keeps models)
+	docker compose -f misc/docker-compose.yml up -d --force-recreate ollama
+
+ollama-status: ## Show available Ollama models
+	docker exec -it pf2e-ollama ollama list
 
 # Run with Profiles
 run-local: dev-start ## Start application with local DB and Ollama (docker-compose)

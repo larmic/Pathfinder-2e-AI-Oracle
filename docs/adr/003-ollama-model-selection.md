@@ -17,7 +17,7 @@ We use **two separate Ollama models** for local development:
 | Model | Type | Purpose | Vector Dimensions |
 |-------|------|---------|-------------------|
 | `nomic-embed-text` | Embedding | Text-to-vector conversion | 768 |
-| `llama3.2` | Chat/LLM | Response generation | N/A |
+| `qwen2.5:7b` | Chat/LLM | Response generation | N/A |
 
 ## Considered Alternatives
 
@@ -52,16 +52,17 @@ We use **two separate Ollama models** for local development:
 | | No offline capability |
 
 ### Option 4: Specialized Ollama Models (chosen)
-**Approach:** Use `nomic-embed-text` for embeddings, `llama3.2` for chat.
+**Approach:** Use `nomic-embed-text` for embeddings, `qwen2.5:7b` for chat.
 
 | Pro | Con |
 |-----|-----|
-| **Free** (no API costs) | Two models to download (~2.3 GB total) |
-| **Offline capable** | Requires sufficient RAM |
+| **Free** (no API costs) | Two models to download (~5 GB total) |
+| **Offline capable** | Requires sufficient RAM (16GB+ recommended) |
 | Specialized models for each task | Slightly longer initial setup |
 | Privacy (data stays local) | |
 | `nomic-embed-text` optimized for RAG | |
-| `llama3.2` good quality/size ratio | |
+| `qwen2.5:7b` excellent multilingual support | |
+| `qwen2.5:7b` strong reasoning capabilities | |
 
 ## Implementation Details
 
@@ -73,30 +74,29 @@ We use **two separate Ollama models** for local development:
 - Optimized for: Retrieval, similarity search
 - Spring AI config: `spring.ai.ollama.embedding.options.model`
 
-**llama3.2:**
-- Size: ~2 GB (3B parameter version)
+**qwen2.5:7b:**
+- Size: ~4.7 GB (7B parameter version)
 - Context window: 128k tokens
-- Optimized for: Instruction following, Q&A
+- Optimized for: Instruction following, Q&A, multilingual (especially German)
 - Spring AI config: `spring.ai.ollama.chat.options.model`
+- Note: Upgraded from `llama3.2` (3B) for better multilingual support and reasoning
 
 ### RAG Workflow
 ```
 Ingestion:   Rule text → nomic-embed-text → vector → PGVector
 Retrieval:   Query → nomic-embed-text → similarity search → documents
-Generation:  Documents + Query → llama3.2 → Answer
+Generation:  Documents + Query → qwen2.5:7b → Answer
 ```
 
-### Configuration (application-local.yaml)
+### Configuration (application.yaml)
 ```yaml
 spring:
   ai:
     ollama:
       embedding:
-        options:
-          model: nomic-embed-text
+        model: nomic-embed-text
       chat:
-        options:
-          model: llama3.2
+        model: qwen2.5:7b
 ```
 
 ## Consequences
@@ -110,8 +110,8 @@ spring:
 - Reproducible local development environment
 
 ### Negative
-- ~2.3 GB disk space for both models
-- Requires machine with sufficient RAM (8GB+ recommended)
+- ~5 GB disk space for both models
+- Requires machine with sufficient RAM (16GB+ recommended)
 - Initial model download on first setup
 - Two models to keep updated
 

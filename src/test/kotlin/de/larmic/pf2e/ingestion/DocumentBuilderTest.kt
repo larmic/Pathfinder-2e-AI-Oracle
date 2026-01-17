@@ -167,5 +167,25 @@ class DocumentBuilderTest {
             assertThat(document.text).doesNotContain("@UUID")
             assertThat(document.text).doesNotContain("<p>")
         }
+
+        @Test
+        fun `uses entry id as document id for vector store linking`() {
+            val entryId = UUID.randomUUID()
+            val json = """{"_id": "test", "name": "Test", "system": {}}"""
+            val entry = FoundryRawEntry(
+                id = entryId,
+                foundryId = "test-id",
+                foundryType = "feat",
+                name = "Test",
+                rawJsonContent = json,
+                githubSha = "sha",
+                githubPath = "path.json"
+            )
+            val metadata = mapOf("foundryType" to "feat", "name" to "Test")
+
+            val document = documentBuilder.buildDocument(entry, metadata)
+
+            assertThat(document.id).isEqualTo(entryId.toString())
+        }
     }
 }

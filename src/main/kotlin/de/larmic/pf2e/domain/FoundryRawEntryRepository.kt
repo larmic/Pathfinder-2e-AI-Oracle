@@ -42,4 +42,19 @@ interface FoundryRawEntryRepository : JpaRepository<FoundryRawEntry, UUID> {
     @Transactional
     @Query("UPDATE FoundryRawEntry e SET e.vectorizedSha = e.githubSha WHERE e.id IN :ids")
     fun markAsVectorized(@Param("ids") ids: List<UUID>)
+
+    // Orphan cleanup queries
+
+    @Query("SELECT e.id AS id, e.githubPath AS githubPath FROM FoundryRawEntry e")
+    fun findAllIdAndPaths(): List<IdAndPath>
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM FoundryRawEntry e WHERE e.id IN :ids")
+    fun deleteAllByIds(@Param("ids") ids: List<UUID>)
+}
+
+interface IdAndPath {
+    val id: UUID
+    val githubPath: String
 }

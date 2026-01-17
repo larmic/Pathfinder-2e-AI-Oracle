@@ -17,6 +17,12 @@ class ChatService(
             Always base your answers on the search results from the tools.
             If you cannot find relevant information, clearly state that.
             Be concise but thorough in your explanations.
+
+            IMPORTANT: Always respond in the same language the user writes in.
+            When searching, translate the user's query to English for the tools (since the data is in English),
+            but provide your final answer in the user's language.
+            For official game terms (spell names, conditions, traits), include the English term in parentheses
+            for reference, e.g., "Feuerball (Fireball)".
             """.trimIndent()
         )
         .defaultToolCallbacks(toolCallbackProvider)
